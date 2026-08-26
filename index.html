@@ -95,6 +95,7 @@
           <a href="#issues" class="hover:text-white transition">Issues</a>
           <a href="#board" class="hover:text-white transition">Community</a>
           <a href="#officials" class="hover:text-white transition">Officials</a>
+          <a href="#firewall" class="hover:text-white transition">Firewall</a>
           <a href="#pricing" class="hover:text-white transition">Pricing</a>
         </div>
         <div class="flex items-center gap-3">
@@ -194,6 +195,11 @@
           </div>
         </div>
         <div>
+          <label for="author-email" class="block text-sm font-medium text-slate-300 mb-2">Your email</label>
+          <input type="email" id="author-email" required maxlength="254" placeholder="you@example.com" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" />
+          <p class="text-xs text-slate-500 mt-1.5">Used to enforce the Community Firewall. Hate speech, scams, and fake accounts get the origin email permanently blocked on SPOYLT.</p>
+        </div>
+        <div>
           <label for="title" class="block text-sm font-medium text-slate-300 mb-2">Title of your proposition</label>
           <input type="text" id="title" required maxlength="120" placeholder="e.g. Cap residential rent increases at 3% annually" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" />
         </div>
@@ -230,6 +236,50 @@
       </div>
       <div id="community-board" class="space-y-4 max-h-[600px] overflow-y-auto pr-1">
         <!-- cards injected by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Community Firewall -->
+  <section id="firewall" class="py-20 px-4 sm:px-6 lg:px-8 bg-slate-950">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium px-3 py-1.5 rounded-full mb-5">
+          Community Firewall — always on
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-bold mb-3">No fakes. No slurs. No romance scams.</h2>
+        <p class="text-slate-400 max-w-2xl mx-auto">Every proposition, comment, and account is scanned before it hits the board. Hard violations permanently block the origin email on SPOYLT and wipe that user’s content.</p>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="glass rounded-xl p-5">
+          <p class="text-2xl mb-2">🪪</p>
+          <h3 class="font-semibold mb-1">Fake accounts</h3>
+          <p class="text-xs text-slate-400">Disposable inboxes, randomized mailboxes, banned emails, throwaway names.</p>
+        </div>
+        <div class="glass rounded-xl p-5">
+          <p class="text-2xl mb-2">🚫</p>
+          <h3 class="font-semibold mb-1">Hate & vulgar speech</h3>
+          <p class="text-xs text-slate-400">Racist and sexist language is a permanent ban. Vulgar posts are rejected.</p>
+        </div>
+        <div class="glass rounded-xl p-5">
+          <p class="text-2xl mb-2">💔</p>
+          <h3 class="font-semibold mb-1">Romance scams</h3>
+          <p class="text-xs text-slate-400">Love-lure + money rails, military-overseas stories, off-platform WhatsApp pitches.</p>
+        </div>
+        <div class="glass rounded-xl p-5">
+          <p class="text-2xl mb-2">🔒</p>
+          <h3 class="font-semibold mb-1">Email block</h3>
+          <p class="text-xs text-slate-400">Origin email is banned on this platform only — we cannot and do not delete a Gmail/Outlook inbox.</p>
+        </div>
+      </div>
+      <div class="glass rounded-2xl p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <h3 class="font-semibold">Blocked origin emails (this device / demo)</h3>
+          <span class="text-xs text-slate-500"><span id="fw-block-count">0</span> permanent blocks · <span id="fw-log-count">0</span> events</span>
+        </div>
+        <ul id="fw-block-list" class="text-sm text-slate-400 space-y-2 max-h-40 overflow-y-auto">
+          <li class="text-slate-600">No blocks yet. Firewall is armed.</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -360,6 +410,7 @@
   <!-- Toast -->
   <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-600 text-white px-5 py-3 rounded-xl shadow-2xl transform translate-y-24 opacity-0 transition-all duration-300 z-50 max-w-sm"></div>
 
+  <script src="js/firewall.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

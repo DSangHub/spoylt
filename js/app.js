@@ -21,6 +21,7 @@ const SEED_PROPOSITIONS = [
     comments: 42,
     location: 'Sacramento, CA',
     author: 'Local Resident',
+    email: 'resident.demo@spoylt.local',
     createdAt: Date.now() - 86400000 * 2,
   },
   {
@@ -33,6 +34,7 @@ const SEED_PROPOSITIONS = [
     comments: 56,
     location: 'Sacramento, CA',
     author: 'Commute Warrior',
+    email: 'commute.demo@spoylt.local',
     createdAt: Date.now() - 86400000 * 5,
   },
   {
@@ -45,6 +47,7 @@ const SEED_PROPOSITIONS = [
     comments: 31,
     location: 'Sacramento, CA',
     author: 'Foothill Neighbor',
+    email: 'foothill.demo@spoylt.local',
     createdAt: Date.now() - 86400000 * 1,
   },
   {
@@ -57,6 +60,7 @@ const SEED_PROPOSITIONS = [
     comments: 87,
     location: 'Sacramento, CA',
     author: 'Working Parent',
+    email: 'parent.demo@spoylt.local',
     createdAt: Date.now() - 86400000 * 3,
   },
   {
@@ -69,6 +73,7 @@ const SEED_PROPOSITIONS = [
     comments: 28,
     location: 'Sacramento, CA',
     author: 'Volunteer',
+    email: 'volunteer.demo@spoylt.local',
     createdAt: Date.now() - 86400000 * 4,
   },
 ];
@@ -297,9 +302,59 @@ function renderBoard() {
   });
   $$('.comment-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      showToast('Comments coming soon — backend with Supabase.');
+      const email = ($('#author-email')?.value || '').trim();
+      const draft = window.prompt('Add a comment (scanned by Community Firewall):');
+      if (draft == null) return;
+      const fw = window.SpoyltFirewall.inspect({
+        email: email || 'anonymous@blocked.invalid',
+        displayName: 'Commenter',
+        comment: draft,
+      });
+      if (!fw.allowed) {
+        if (fw.blockEmail && email) {
+          propositions = window.SpoyltFirewall.purgeByEmail(propositions, email);
+          savePropositions();
+          renderBoard();
+          renderFirewallPanel();
+        }
+        showToast(window.SpoyltFirewall.publicMessage(fw));
+        return;
+      }
+      const p = propositions.find((x) => x.id === btn.dataset.id);
+      if (p) {
+        p.comments += 1;
+        savePropositions();
+        renderBoard();
+        showToast('Comment posted.');
+      }
     });
   });
+}
+
+function renderFirewallPanel() {
+  const fw = window.SpoyltFirewall;
+  if (!fw) return;
+  const blocks = fw.loadBlocks();
+  const log = fw.loadLog();
+  const countEl = $('#fw-block-count');
+  const logEl = $('#fw-log-count');
+  const listEl = $('#fw-block-list');
+  if (countEl) countEl.textContent = String(blocks.length);
+  if (logEl) logEl.textContent = String(log.length);
+  if (!listEl) return;
+  if (!blocks.length) {
+    listEl.innerHTML = '<li class="text-slate-600">No blocks yet. Firewall is armed.</li>';
+    return;
+  }
+  listEl.innerHTML = blocks
+    .map((b) => {
+      const when = new Date(b.blockedAt).toLocaleString();
+      return `<li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b border-slate-800 pb-2">
+        <span class="text-rose-300 font-mono text-xs">${escapeHtml(b.email)}</span>
+        <span class="text-xs">${escapeHtml((b.reasons || []).join(', '))} · ${escapeHtml(when)} · permanent</span>
+      </li>`;
+    })
+    .join('');
 }
 
 function escapeHtml(str) {
@@ -322,13 +377,31 @@ function setupForm() {
     e.preventDefault();
     const title = $('#title').value.trim();
     const suggestion = textarea.value.trim();
+    const email = ($('#author-email')?.value || '').trim();
 
     if (!selectedCategory) {
       showToast('Please select a category first.');
       return;
     }
-    if (!title || !suggestion) {
-      showToast('Title and suggestion are required.');
+    if (!email || !title || !suggestion) {
+      showToast('Email, title, and suggestion are required.');
+      return;
+    }
+
+    const fw = window.SpoyltFirewall.inspect({
+      email,
+      displayName: email.split('@')[0],
+      title,
+      body: suggestion,
+    });
+    if (!fw.allowed) {
+      if (fw.blockEmail) {
+        propositions = window.SpoyltFirewall.purgeByEmail(propositions, email);
+        savePropositions();
+        renderBoard();
+      }
+      renderFirewallPanel();
+      showToast(window.SpoyltFirewall.publicMessage(fw));
       return;
     }
 
@@ -351,6 +424,7 @@ function setupForm() {
       comments: 0,
       location: [userLocation.city, userLocation.region].filter(Boolean).join(', ') || 'Local',
       author: 'You',
+      email,
       createdAt: Date.now(),
     };
 
@@ -394,5 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBoard();
   setupForm();
   setupStripeButtons();
+  renderFirewallPanel();
   detectLocation();
 });

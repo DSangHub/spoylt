@@ -16,6 +16,7 @@
   - Unlimited: **$10 / month**
   - Public Officials: **$25 / month**
 - Ready for **Stripe** Checkout + **Supabase** (auth, DB, realtime)
+- **Community Firewall** — detects fake accounts, vulgar / racist / sexist language, and romance-scam patterns. Hard violations permanently block the origin email **on SPOYLT** and delete that user’s board content. (Does not delete the person’s Gmail/Outlook mailbox.)
 
 ## Quick start (static demo)
 
@@ -64,6 +65,26 @@ create table propositions (
   created_at timestamptz default now()
 );
 
+-- blocked origin emails (platform ban — not an inbox delete)
+create table blocked_emails (
+  email_normalized text primary key,
+  email_original text,
+  reasons text[] not null,
+  permanent boolean default true,
+  blocked_at timestamptz default now(),
+  notes text
+);
+
+-- firewall audit log
+create table firewall_events (
+  id uuid primary key default gen_random_uuid(),
+  email_normalized text,
+  action text check (action in ('CONTENT_REJECTED', 'PERMANENT_BLOCK', 'PURGE_CONTENT')),
+  reasons text[],
+  snippet text,
+  created_at timestamptz default now()
+);
+
 -- interactions
 create table interactions (
   id uuid primary key default gen_random_uuid(),
@@ -79,6 +100,20 @@ create table interactions (
 3. Enable Row Level Security and policies so users can only insert their own propositions and interact once.
 4. Use Supabase Realtime on `propositions` and `interactions` for live board updates.
 5. Track monthly Spoylt count per user (or use a `usage` table) to enforce the free tier of 5/month.
+6. Run `SpoyltFirewall.inspect()` (or a Supabase Edge Function with the same rules) **before insert**. On `blockEmail`, insert into `blocked_emails`, delete the user’s propositions/comments, and ban the Auth user so that email cannot sign up again.
+
+### Community Firewall (client + server)
+
+`js/firewall.js` is the first line of defense in the demo. Production must enforce the same rules on the server:
+
+| Signal | Action |
+|---|---|
+| Disposable / randomized email, banned address | Permanent platform block |
+| Racist or sexist language | Delete content + permanent email block |
+| Romance-scam patterns (money rails + love/military/inheritance bait) | Delete content + permanent email block |
+| Vulgar language only | Reject the post; allow a clean rewrite |
+
+**Scope of “delete origin email”:** SPOYLT permanently blocks and cannot reuse that email on this product. It does **not** reach into Google, Microsoft, or any other mail provider.
 
 ### 2. Stripe
 
