@@ -187,6 +187,21 @@
         <h2 class="text-3xl sm:text-4xl font-bold mb-3">Start your Proposition</h2>
         <p class="text-slate-400">Your suggestion. Your community. Their attention.</p>
       </div>
+      <div id="auth-card" class="glass rounded-2xl p-6 sm:p-8 mb-6">
+        <div class="flex items-start gap-4">
+          <div class="w-11 h-11 rounded-xl bg-sky-500/20 flex items-center justify-center text-xl">👤</div>
+          <div class="flex-1">
+            <h3 class="text-xl font-bold mb-1">Create your free profile or sign in</h3>
+            <p class="text-sm text-slate-400 mb-5">A verified profile is required before you can publish, support, or comment.</p>
+            <form id="auth-form" class="grid sm:grid-cols-[1fr_1fr_auto] gap-3">
+              <input id="profile-name" type="text" maxlength="80" placeholder="Your name" class="bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <input id="profile-email" type="email" required maxlength="254" placeholder="you@example.com" class="bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <button type="submit" class="bg-sky-500 hover:bg-sky-400 text-white font-semibold px-5 py-3 rounded-xl transition">Create / Sign in</button>
+            </form>
+            <p class="text-xs text-slate-500 mt-3">We’ll email a secure one-time link. New emails automatically create a free Citizen profile.</p>
+          </div>
+        </div>
+      </div>
       <form id="spoylt-form" class="glass rounded-2xl p-6 sm:p-8 space-y-6">
         <div>
           <label class="block text-sm font-medium text-slate-300 mb-2">Category</label>
