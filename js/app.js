@@ -49,6 +49,8 @@ function timeAgo(value) {
 }
 
 function updateAuthUI() {
+  const authCard = $('#auth-card');
+  if (authCard) authCard.classList.toggle('hidden', Boolean(currentUser));
   let button = $('#auth-button');
   if (!button) {
     button = document.createElement('button');
@@ -80,14 +82,18 @@ function updateAuthUI() {
   }
 }
 
-async function requestSignIn(email) {
+async function requestSignIn(email, fullName = '') {
   if (!email) {
-    showToast('Enter your email to sign in.');
+    showToast('Enter your email to create a profile or sign in.');
     return false;
   }
   const { error } = await db.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname },
+    options: {
+      emailRedirectTo: 'https://www.spoylt.org/',
+      shouldCreateUser: true,
+      data: { full_name: fullName.trim() || 'SPOYLT member' },
+    },
   });
   if (error) {
     showToast(error.message);
@@ -99,9 +105,19 @@ async function requestSignIn(email) {
 
 async function requireUser() {
   if (currentUser) return currentUser;
-  const email = ($('#author-email')?.value || '').trim();
-  await requestSignIn(email);
+  $('#auth-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('#profile-email')?.focus();
+  showToast('Create your free profile or sign in before continuing.');
   return null;
+}
+
+function setupAuthForm() {
+  $('#auth-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = ($('#profile-email')?.value || '').trim();
+    const fullName = ($('#profile-name')?.value || '').trim();
+    await requestSignIn(email, fullName);
+  });
 }
 
 async function detectLocation() {
@@ -328,6 +344,7 @@ function renderFirewallPanel() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   renderCategories();
+  setupAuthForm();
   setupForm();
   setupStripeButtons();
   renderFirewallPanel();
