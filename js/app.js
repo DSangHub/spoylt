@@ -76,47 +76,77 @@ function updateAuthUI() {
     if (email) email.readOnly = false;
     button.onclick = () => {
       document.getElementById('start').scrollIntoView({ behavior: 'smooth' });
-      email?.focus();
-      showToast('Enter your email, then submit a proposition. We will email you a secure sign-in link.');
+      $('#signin-email')?.focus();
+      showToast('Use Create Account if you are new, or Sign In if you already have an account.');
     };
   }
 }
 
-async function requestSignIn(email, fullName = '') {
-  if (!email) {
-    showToast('Enter your email to create a profile or sign in.');
-    return false;
+function friendlyAuthError(error) {
+  const message = error?.message || 'Authentication failed. Please try again.';
+  if (/rate limit/i.test(message)) {
+    return 'Email limit reached. Please wait before creating another account, or use Sign In if you already have one.';
   }
-  const { error } = await db.auth.signInWithOtp({
+  if (/invalid login credentials/i.test(message)) {
+    return 'Email or password is incorrect.';
+  }
+  if (/already registered|already exists/i.test(message)) {
+    return 'That email already has an account. Use the Sign In box.';
+  }
+  return message;
+}
+
+async function createAccount(email, password, fullName) {
+  const { data, error } = await db.auth.signUp({
     email,
+    password,
     options: {
       emailRedirectTo: 'https://www.spoylt.org/',
-      shouldCreateUser: true,
       data: { full_name: fullName.trim() || 'SPOYLT member' },
     },
   });
   if (error) {
-    showToast(error.message);
-    return false;
+    showToast(friendlyAuthError(error), 7000);
+    return;
   }
-  showToast('Check your email for the secure SPOYLT sign-in link.', 7000);
-  return false;
+  if (data.session) {
+    showToast('Your account is ready. You are signed in.');
+  } else {
+    showToast('Account created. Check your email once to confirm your address.', 7000);
+  }
+}
+
+async function signIn(email, password) {
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) {
+    showToast(friendlyAuthError(error), 7000);
+    return;
+  }
+  showToast('Signed in successfully.');
 }
 
 async function requireUser() {
   if (currentUser) return currentUser;
   $('#auth-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  $('#profile-email')?.focus();
+  $('#signup-email')?.focus();
   showToast('Create your free profile or sign in before continuing.');
   return null;
 }
 
-function setupAuthForm() {
-  $('#auth-form')?.addEventListener('submit', async (event) => {
+function setupAuthForms() {
+  $('#signup-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const email = ($('#profile-email')?.value || '').trim();
-    const fullName = ($('#profile-name')?.value || '').trim();
-    await requestSignIn(email, fullName);
+    const email = ($('#signup-email')?.value || '').trim();
+    const password = $('#signup-password')?.value || '';
+    const fullName = ($('#signup-name')?.value || '').trim();
+    await createAccount(email, password, fullName);
+  });
+
+  $('#signin-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = ($('#signin-email')?.value || '').trim();
+    const password = $('#signin-password')?.value || '';
+    await signIn(email, password);
   });
 }
 
@@ -344,7 +374,7 @@ function renderFirewallPanel() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   renderCategories();
-  setupAuthForm();
+  setupAuthForms();
   setupForm();
   setupStripeButtons();
   renderFirewallPanel();
