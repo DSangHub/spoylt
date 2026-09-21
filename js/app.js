@@ -331,10 +331,6 @@ function renderBoard() {
     if (kind === 'comment') {
       body = window.prompt('Add a comment:');
       if (body == null || !body.trim()) return;
-      const result = window.SpoyltFirewall.inspect({
-        email: user.email, displayName: 'Member', comment: body.trim(),
-      });
-      if (!result.allowed) return showToast(window.SpoyltFirewall.publicMessage(result));
       body = body.trim();
     }
     const { data: moderation, error } = await db.rpc('submit_interaction', {
@@ -380,11 +376,6 @@ function setupForm() {
       showToast('Choose your state and enter the proposition number.');
       return;
     }
-    const firewall = window.SpoyltFirewall.inspect({
-      email: user.email, displayName: 'Member', title, body: suggestion,
-    });
-    if (!firewall.allowed) return showToast(window.SpoyltFirewall.publicMessage(firewall));
-
     const { data: moderation, error } = await db.rpc('submit_proposition', {
       p_category: selectedCategory,
       p_title: title,
