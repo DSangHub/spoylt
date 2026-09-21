@@ -337,11 +337,18 @@ function renderBoard() {
       if (!result.allowed) return showToast(window.SpoyltFirewall.publicMessage(result));
       body = body.trim();
     }
-    const { error } = await db.from('interactions').insert({
-      proposition_id: button.dataset.id, user_id: user.id, kind, body,
+    const { data: moderation, error } = await db.rpc('submit_interaction', {
+      p_proposition_id: button.dataset.id,
+      p_kind: kind,
+      p_body: body,
     });
     if (error) {
-      showToast(error.code === '23505' ? 'You already counted that reaction.' : error.message);
+      showToast('The Community Firewall could not process that request. Please try again.');
+      return;
+    }
+    if (!moderation?.ok) {
+      showToast(moderation?.message || 'Blocked by the Community Firewall.', 7000);
+      if (moderation?.blocked) await db.auth.signOut();
       return;
     }
     showToast(kind === 'comment' ? 'Comment posted.' : 'Your support is counted.');
@@ -378,24 +385,26 @@ function setupForm() {
     });
     if (!firewall.allowed) return showToast(window.SpoyltFirewall.publicMessage(firewall));
 
-    const { error } = await db.from('propositions').insert({
-      user_id: user.id,
-      category: selectedCategory,
-      title,
-      suggestion,
-      scope: propositionScope,
-      state_code: propositionScope === 'state' ? stateCode : null,
-      proposition_number: propositionScope === 'state' ? propositionNumber : null,
-      location_city: propositionScope === 'local' ? userLocation.city : null,
-      location_region: propositionScope === 'local' ? userLocation.region : stateCode,
-      latitude: propositionScope === 'local' ? userLocation.lat : null,
-      longitude: propositionScope === 'local' ? userLocation.lng : null,
+    const { data: moderation, error } = await db.rpc('submit_proposition', {
+      p_category: selectedCategory,
+      p_title: title,
+      p_suggestion: suggestion,
+      p_scope: propositionScope,
+      p_state_code: propositionScope === 'state' ? stateCode : null,
+      p_proposition_number: propositionScope === 'state' ? propositionNumber : null,
+      p_location_city: propositionScope === 'local' ? userLocation.city : null,
+      p_location_region: propositionScope === 'local' ? userLocation.region : stateCode,
+      p_latitude: propositionScope === 'local' ? userLocation.lat : null,
+      p_longitude: propositionScope === 'local' ? userLocation.lng : null,
     });
     if (error) {
-      if (error.message.includes('Free plan limit')) {
-        showToast('Free limit reached: 5 SPOYLTs this month. Upgrade for unlimited posting.');
-        document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
-      } else showToast(error.message);
+      showToast('The Community Firewall could not process that proposition. Please try again.');
+      return;
+    }
+    if (!moderation?.ok) {
+      showToast(moderation?.message || 'Blocked by the Community Firewall.', 7000);
+      if (moderation?.limit) document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+      if (moderation?.blocked) await db.auth.signOut();
       return;
     }
 
