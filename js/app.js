@@ -33,6 +33,8 @@ const stateName = (code) => STATES.find(([value]) => value === code)?.[1] || cod
 let selectedCategory = null;
 let propositionScope = 'local';
 let currentUser = null;
+let currentProfileName = '';
+let verifiedOfficial = false;
 let propositions = [];
 let userLocation = { city: 'your area', region: '', lat: null, lng: null };
 
@@ -64,6 +66,38 @@ function timeAgo(value) {
   return Math.floor(seconds / 86400) + 'd ago';
 }
 
+async function loadAccountIdentity() {
+  currentProfileName = '';
+  verifiedOfficial = false;
+  if (!currentUser) return;
+
+  const [profileResult, membershipResult] = await Promise.all([
+    db.from('profiles').select('display_name').eq('id', currentUser.id).maybeSingle(),
+    db.from('memberships').select('plan,status,verified_official').eq('user_id', currentUser.id).maybeSingle(),
+  ]);
+
+  currentProfileName = profileResult.data?.display_name || currentUser.user_metadata?.full_name || '';
+  const membership = membershipResult.data;
+  verifiedOfficial = Boolean(
+    membership?.plan === 'official' &&
+    ['active', 'trialing'].includes(membership?.status) &&
+    membership?.verified_official
+  );
+
+  const button = $('#auth-button');
+  if (button && currentUser) {
+    const name = currentProfileName || currentUser.email || 'Account';
+    button.textContent = verifiedOfficial
+      ? '⭐ ✓ ' + name + ' · Sign out'
+      : name + ' · Sign out';
+    button.classList.toggle('border-amber-400', verifiedOfficial);
+    button.classList.toggle('text-amber-300', verifiedOfficial);
+    button.title = verifiedOfficial
+      ? 'Verified Public Official Account'
+      : currentUser.email || '';
+  }
+}
+
 function updateAuthUI() {
   const authCard = $('#auth-card');
   if (authCard) authCard.classList.toggle('hidden', Boolean(currentUser));
@@ -77,7 +111,7 @@ function updateAuthUI() {
   }
   const email = $('#author-email');
   if (currentUser) {
-    button.textContent = 'Sign out';
+    button.textContent = 'Account · Sign out';
     button.title = currentUser.email || '';
     if (email) {
       email.value = currentUser.email || '';
@@ -85,8 +119,11 @@ function updateAuthUI() {
     }
     button.onclick = async () => {
       await db.auth.signOut();
+      currentProfileName = '';
+      verifiedOfficial = false;
       showToast('Signed out.');
     };
+    loadAccountIdentity();
   } else {
     button.textContent = 'Sign in';
     if (email) email.readOnly = false;
@@ -132,13 +169,24 @@ async function createAccount(email, password, fullName) {
   }
 }
 
-async function signIn(email, password) {
-  const { error } = await db.auth.signInWithPassword({ email, password });
+async function signIn(email, password, fullName) {
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
   if (error) {
     showToast(friendlyAuthError(error), 7000);
     return;
   }
+
+  const name = fullName.trim();
+  if (name && data.user) {
+    const { error: profileError } = await db
+      .from('profiles')
+      .update({ display_name: name })
+      .eq('id', data.user.id);
+    if (profileError) console.warn('Profile name could not be updated:', profileError.message);
+  }
+
   showToast('Signed in successfully.');
+  await loadAccountIdentity();
 }
 
 async function requireUser() {
@@ -160,9 +208,10 @@ function setupAuthForms() {
 
   $('#signin-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const fullName = ($('#signin-name')?.value || '').trim();
     const email = ($('#signin-email')?.value || '').trim();
     const password = $('#signin-password')?.value || '';
-    await signIn(email, password);
+    await signIn(email, password, fullName);
   });
 }
 
