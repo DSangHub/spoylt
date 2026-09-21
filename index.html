@@ -385,6 +385,63 @@
           </div>
         </div>
       </div>
+
+      <div class="glass rounded-3xl p-6 sm:p-8 mt-8 border border-amber-500/20">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+          <div>
+            <h3 class="text-2xl font-bold mb-2">Official & Candidate Verification</h3>
+            <p class="text-sm text-slate-400 max-w-2xl">Identity verification does not purchase a badge. SPOYLT verifies your identity through Stripe and reviews your government or election filing source before approval.</p>
+          </div>
+          <div id="verification-status" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-800 text-slate-400">Sign in to apply</div>
+        </div>
+        <form id="verification-form" class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="verification-type" class="block text-sm font-medium text-slate-300 mb-2">Applying as</label>
+            <select id="verification-type" required class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white">
+              <option value="official">Current Public Official</option>
+              <option value="candidate">Candidate Running for Office</option>
+            </select>
+          </div>
+          <div>
+            <label for="verification-legal-name" class="block text-sm font-medium text-slate-300 mb-2">Full legal name</label>
+            <input id="verification-legal-name" required maxlength="120" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div>
+            <label for="verification-office" class="block text-sm font-medium text-slate-300 mb-2">Office or office sought</label>
+            <input id="verification-office" required maxlength="160" placeholder="e.g. City Council, District 4" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div>
+            <label for="verification-jurisdiction" class="block text-sm font-medium text-slate-300 mb-2">Jurisdiction</label>
+            <input id="verification-jurisdiction" required maxlength="160" placeholder="City, county, state, or federal" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div>
+            <label for="verification-district" class="block text-sm font-medium text-slate-300 mb-2">District</label>
+            <input id="verification-district" maxlength="100" placeholder="Optional" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div>
+            <label for="verification-filing-id" class="block text-sm font-medium text-slate-300 mb-2">Election filing or FEC ID</label>
+            <input id="verification-filing-id" maxlength="100" placeholder="Required for candidates when available" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div class="sm:col-span-2">
+            <label for="verification-source" class="block text-sm font-medium text-slate-300 mb-2">Official government or election-source URL</label>
+            <input id="verification-source" type="url" required placeholder="https://..." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div>
+            <label for="verification-email" class="block text-sm font-medium text-slate-300 mb-2">Official or campaign email</label>
+            <input id="verification-email" type="email" maxlength="254" placeholder="Optional, but recommended" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div>
+            <label for="verification-date" class="block text-sm font-medium text-slate-300 mb-2">Election date or term end</label>
+            <input id="verification-date" type="date" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </div>
+          <div class="sm:col-span-2">
+            <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold py-3.5 rounded-xl transition">
+              Save Application & Verify Identity
+            </button>
+            <p class="text-xs text-slate-500 mt-3 text-center">Current officials receive ⭐ ✓ after approval. Candidates receive ✓ Verified Candidate. Verification expires at the term or election date.</p>
+          </div>
+        </form>
+      </div>
     </div>
   </section>
 
