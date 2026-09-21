@@ -221,6 +221,31 @@
         </div>
       </div>
       <form id="spoylt-form" class="glass rounded-2xl p-6 sm:p-8 space-y-6">
+        <fieldset>
+          <legend class="block text-sm font-medium text-slate-300 mb-2">Spoylt type</legend>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <label class="cursor-pointer">
+              <input class="peer sr-only" type="radio" name="proposition-scope" value="local" checked />
+              <span class="block rounded-xl border border-slate-600 bg-slate-800/60 px-4 py-3 text-sm text-slate-300 peer-checked:border-sky-400 peer-checked:bg-sky-500/10 peer-checked:text-sky-300">📍 Local Proposition</span>
+            </label>
+            <label class="cursor-pointer">
+              <input class="peer sr-only" type="radio" name="proposition-scope" value="state" />
+              <span class="block rounded-xl border border-slate-600 bg-slate-800/60 px-4 py-3 text-sm text-slate-300 peer-checked:border-sky-400 peer-checked:bg-sky-500/10 peer-checked:text-sky-300">🏛️ State Proposition</span>
+            </label>
+          </div>
+        </fieldset>
+        <div id="state-fields" class="hidden grid sm:grid-cols-2 gap-4">
+          <div>
+            <label for="state-select" class="block text-sm font-medium text-slate-300 mb-2">Choose your state</label>
+            <select id="state-select" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="">Select a state</option>
+            </select>
+          </div>
+          <div>
+            <label for="proposition-number" class="block text-sm font-medium text-slate-300 mb-2">Proposition #</label>
+            <input type="text" id="proposition-number" maxlength="30" placeholder="e.g. 36" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+        </div>
         <div>
           <label class="block text-sm font-medium text-slate-300 mb-2">Category</label>
           <div class="flex flex-wrap gap-2" id="category-chips">
@@ -237,7 +262,7 @@
           <input type="text" id="title" required maxlength="120" placeholder="e.g. Cap residential rent increases at 3% annually" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" />
         </div>
         <div>
-          <label for="suggestion" class="block text-sm font-medium text-slate-300 mb-2">Your suggestion</label>
+          <label id="suggestion-label" for="suggestion" class="block text-sm font-medium text-slate-300 mb-2">Your suggestion</label>
           <textarea id="suggestion" required rows="5" maxlength="2000" placeholder="Describe the problem and what you want changed. Be specific. Lawmakers and neighbors will read this." class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-y"></textarea>
           <p class="text-xs text-slate-500 mt-1.5"><span id="char-count">0</span>/2000</p>
         </div>
