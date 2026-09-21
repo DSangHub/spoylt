@@ -365,7 +365,7 @@
               <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">✓</span> Analytics on constituent sentiment</li>
             </ul>
             <button id="official-cta" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold px-6 py-3 rounded-xl transition shadow-lg shadow-amber-500/25">
-              Create Official Account — $25/mo
+              Create Official Account — $49.95/mo
             </button>
           </div>
           <div class="bg-slate-800/60 rounded-2xl p-6 border border-slate-700">
@@ -442,69 +442,97 @@
           </div>
         </form>
       </div>
+      <div class="glass rounded-3xl p-6 sm:p-8 mt-8 border border-violet-500/30">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+          <div>
+            <div class="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-semibold px-3 py-1.5 rounded-full mb-3">Premium · OpenAI</div>
+            <h3 class="text-2xl font-bold mb-2">AI Chat Moderator</h3>
+            <p class="text-sm text-slate-400 max-w-2xl">Screen comments for abusive, vulgar, hateful, threatening, or unsafe content, then draft a concise and civil public reply.</p>
+          </div>
+          <div id="ai-moderator-access" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-800 text-slate-400">Premium account required</div>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-5">
+          <div class="space-y-4">
+            <div>
+              <label for="ai-moderator-context" class="block text-sm font-medium text-slate-300 mb-2">Proposition or discussion context</label>
+              <textarea id="ai-moderator-context" rows="3" maxlength="5000" placeholder="Paste the proposition, issue, or background here." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 resize-y"></textarea>
+            </div>
+            <div>
+              <label for="ai-moderator-input" class="block text-sm font-medium text-slate-300 mb-2">Comment or reply text</label>
+              <textarea id="ai-moderator-input" rows="5" maxlength="5000" placeholder="Paste a comment to screen or answer." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 resize-y"></textarea>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button id="ai-check-content" type="button" class="flex-1 border border-violet-500 text-violet-300 hover:bg-violet-500 hover:text-white font-semibold py-3 rounded-xl transition">Check Content</button>
+              <button id="ai-draft-reply" type="button" class="flex-1 bg-violet-500 hover:bg-violet-400 text-white font-semibold py-3 rounded-xl transition">Draft Reply with OpenAI</button>
+            </div>
+          </div>
+          <div>
+            <label for="ai-moderator-output" class="block text-sm font-medium text-slate-300 mb-2">Moderator result / suggested reply</label>
+            <textarea id="ai-moderator-output" rows="11" readonly placeholder="Your moderation result or suggested reply will appear here." class="w-full bg-slate-950/70 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 placeholder-slate-600 resize-y"></textarea>
+            <button id="ai-copy-reply" type="button" class="mt-3 w-full border border-slate-600 hover:border-violet-400 hover:text-violet-300 font-medium py-2.5 rounded-xl transition">Copy Result</button>
+            <p class="text-xs text-slate-500 mt-3">AI output may be inaccurate. Review every reply before posting. SPOYLT’s database firewall still applies to all submitted content.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- Pricing -->
   <section id="pricing" class="py-20 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-7xl mx-auto">
       <div class="text-center mb-14">
         <h2 class="text-3xl sm:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
         <p class="text-slate-400">Start free. Scale when you’re ready to be heard more.</p>
       </div>
-      <div class="grid md:grid-cols-3 gap-6">
-        <!-- Free -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="glass rounded-2xl p-8 flex flex-col card-hover">
           <h3 class="text-lg font-semibold text-slate-300 mb-1">Citizen</h3>
-          <div class="flex items-baseline gap-1 mb-6">
-            <span class="text-4xl font-extrabold">$0</span>
-            <span class="text-slate-500">/mo</span>
-          </div>
+          <div class="flex items-baseline gap-1 mb-6"><span class="text-4xl font-extrabold">$0</span><span class="text-slate-500">/mo</span></div>
           <ul class="space-y-3 text-sm text-slate-400 mb-8 flex-1">
             <li class="flex gap-2"><span class="text-sky-400">✓</span> 5 Spoylts per month</li>
             <li class="flex gap-2"><span class="text-sky-400">✓</span> Like, support & comment</li>
             <li class="flex gap-2"><span class="text-sky-400">✓</span> Local community board</li>
             <li class="flex gap-2"><span class="text-sky-400">✓</span> Geolocation matching</li>
           </ul>
-          <button class="w-full border border-slate-600 hover:border-sky-500 hover:text-sky-400 font-medium py-3 rounded-xl transition">Get started free</button>
+          <a href="#start" class="w-full text-center border border-slate-600 hover:border-sky-500 hover:text-sky-400 font-medium py-3 rounded-xl transition">Get started free</a>
         </div>
-        <!-- Unlimited -->
         <div class="relative rounded-2xl p-8 flex flex-col bg-gradient-to-b from-sky-600/20 to-slate-900 border border-sky-500/40 shadow-xl shadow-sky-500/10 card-hover">
-          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full">MOST POPULAR</div>
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full">POPULAR</div>
           <h3 class="text-lg font-semibold text-sky-300 mb-1">Unlimited</h3>
-          <div class="flex items-baseline gap-1 mb-6">
-            <span class="text-4xl font-extrabold">$10</span>
-            <span class="text-slate-400">/mo</span>
-          </div>
+          <div class="flex items-baseline gap-1 mb-6"><span class="text-4xl font-extrabold">$10</span><span class="text-slate-400">/mo</span></div>
           <ul class="space-y-3 text-sm text-slate-300 mb-8 flex-1">
             <li class="flex gap-2"><span class="text-sky-400">✓</span> Unlimited Spoylts</li>
             <li class="flex gap-2"><span class="text-sky-400">✓</span> Priority visibility</li>
             <li class="flex gap-2"><span class="text-sky-400">✓</span> Advanced analytics</li>
             <li class="flex gap-2"><span class="text-sky-400">✓</span> Everything in Citizen</li>
           </ul>
-          <button id="stripe-unlimited" class="w-full bg-sky-500 hover:bg-sky-400 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-sky-500/30">
-            Subscribe — Stripe
-          </button>
+          <button id="stripe-unlimited" class="w-full bg-sky-500 hover:bg-sky-400 text-white font-semibold py-3 rounded-xl transition">Subscribe — Stripe</button>
         </div>
-        <!-- Officials -->
         <div class="glass rounded-2xl p-8 flex flex-col card-hover border-amber-500/20">
           <h3 class="text-lg font-semibold text-amber-300 mb-1">Public Official</h3>
-          <div class="flex items-baseline gap-1 mb-6">
-            <span class="text-4xl font-extrabold">$25</span>
-            <span class="text-slate-500">/mo</span>
-          </div>
+          <div class="flex items-baseline gap-1 mb-6"><span class="text-4xl font-extrabold">$49.95</span><span class="text-slate-500">/mo</span></div>
           <ul class="space-y-3 text-sm text-slate-400 mb-8 flex-1">
-            <li class="flex gap-2"><span class="text-amber-400">✓</span> Verified badge</li>
+            <li class="flex gap-2"><span class="text-amber-400">✓</span> Verified badge after approval</li>
             <li class="flex gap-2"><span class="text-amber-400">✓</span> District dashboard</li>
             <li class="flex gap-2"><span class="text-amber-400">✓</span> Public responses</li>
             <li class="flex gap-2"><span class="text-amber-400">✓</span> Sentiment insights</li>
           </ul>
-          <button id="stripe-official" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold py-3 rounded-xl transition">
-            Official Account — Stripe
-          </button>
+          <button id="stripe-official" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold py-3 rounded-xl transition">Official Account — Stripe</button>
+        </div>
+        <div class="relative rounded-2xl p-8 flex flex-col bg-gradient-to-b from-violet-600/20 to-slate-900 border border-violet-500/50 shadow-xl shadow-violet-500/10 card-hover">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-violet-500 text-white text-xs font-bold px-3 py-1 rounded-full">AI MODERATOR</div>
+          <h3 class="text-lg font-semibold text-violet-300 mb-1">Premium Official</h3>
+          <div class="flex items-baseline gap-1 mb-6"><span class="text-4xl font-extrabold">$99.95</span><span class="text-slate-400">/mo</span></div>
+          <ul class="space-y-3 text-sm text-slate-300 mb-8 flex-1">
+            <li class="flex gap-2"><span class="text-violet-400">✓</span> Everything in Public Official</li>
+            <li class="flex gap-2"><span class="text-violet-400">✓</span> OpenAI Chat Moderator</li>
+            <li class="flex gap-2"><span class="text-violet-400">✓</span> High-level abuse & vulgar-content screening</li>
+            <li class="flex gap-2"><span class="text-violet-400">✓</span> AI-assisted comments & replies</li>
+          </ul>
+          <button id="stripe-premium" class="w-full bg-violet-500 hover:bg-violet-400 text-white font-semibold py-3 rounded-xl transition">Premium — Stripe</button>
         </div>
       </div>
-      <p class="text-center text-xs text-slate-500 mt-8">Payments processed securely by Stripe. Cancel anytime. Backend powered by Supabase.</p>
+      <p class="text-center text-xs text-slate-500 mt-8">Subscriptions are processed securely by Stripe. Cancel anytime. OpenAI usage is subject to reasonable limits. Taxes, if required, are determined at checkout.</p>
     </div>
   </section>
 
