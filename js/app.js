@@ -35,6 +35,8 @@ let propositionScope = 'local';
 let currentUser = null;
 let currentProfileName = '';
 let verifiedOfficial = false;
+let verificationType = null;
+let verificationRequest = null;
 let propositions = [];
 let userLocation = { city: 'your area', region: '', lat: null, lng: null };
 
@@ -73,28 +75,33 @@ async function loadAccountIdentity() {
 
   const [profileResult, membershipResult] = await Promise.all([
     db.from('profiles').select('display_name').eq('id', currentUser.id).maybeSingle(),
-    db.from('memberships').select('plan,status,verified_official').eq('user_id', currentUser.id).maybeSingle(),
+    db.from('memberships').select('verification_type,verification_status,verification_expires_at,verified_official').eq('user_id', currentUser.id).maybeSingle(),
   ]);
 
   currentProfileName = profileResult.data?.display_name || currentUser.user_metadata?.full_name || '';
   const membership = membershipResult.data;
-  verifiedOfficial = Boolean(
-    membership?.plan === 'official' &&
-    ['active', 'trialing'].includes(membership?.status) &&
-    membership?.verified_official
-  );
+  const verificationCurrent = membership?.verification_status === 'verified' &&
+    (!membership?.verification_expires_at || new Date(membership.verification_expires_at) > new Date());
+  verifiedOfficial = Boolean(verificationCurrent && membership?.verification_type === 'official' && membership?.verified_official);
+  verificationType = verificationCurrent ? membership?.verification_type : null;
 
   const button = $('#auth-button');
   if (button && currentUser) {
     const name = currentProfileName || currentUser.email || 'Account';
     button.textContent = verifiedOfficial
       ? '⭐ ✓ ' + name + ' · Sign out'
-      : name + ' · Sign out';
+      : verificationType === 'candidate'
+        ? '✓ Candidate ' + name + ' · Sign out'
+        : name + ' · Sign out';
     button.classList.toggle('border-amber-400', verifiedOfficial);
     button.classList.toggle('text-amber-300', verifiedOfficial);
+    button.classList.toggle('border-sky-400', verificationType === 'candidate');
+    button.classList.toggle('text-sky-300', verificationType === 'candidate');
     button.title = verifiedOfficial
       ? 'Verified Public Official Account'
-      : currentUser.email || '';
+      : verificationType === 'candidate'
+        ? 'Verified Candidate Account'
+        : currentUser.email || '';
   }
 }
 
@@ -121,6 +128,9 @@ function updateAuthUI() {
       await db.auth.signOut();
       currentProfileName = '';
       verifiedOfficial = false;
+      verificationType = null;
+      verificationRequest = null;
+      renderVerificationStatus();
       showToast('Signed out.');
     };
     loadAccountIdentity();
@@ -473,6 +483,103 @@ async function beginCheckout(plan) {
   window.location.assign(data.url);
 }
 
+
+function renderVerificationStatus() {
+  const badge = $('#verification-status');
+  const form = $('#verification-form');
+  if (!badge || !form) return;
+  form.classList.toggle('opacity-60', !currentUser);
+  const labels = {
+    pending_identity: 'Identity verification required',
+    pending_review: 'Identity verified · Evidence under review',
+    verified: verificationRequest?.verification_type === 'official' ? '⭐ ✓ Verified Public Official' : '✓ Verified Candidate',
+    rejected: 'Application needs correction',
+    expired: 'Verification expired',
+    revoked: 'Verification revoked',
+  };
+  badge.textContent = currentUser ? (labels[verificationRequest?.status] || 'Ready to apply') : 'Sign in to apply';
+  badge.className = 'text-xs font-semibold px-3 py-1.5 rounded-full ' +
+    (verificationRequest?.status === 'verified' ? 'bg-emerald-500/15 text-emerald-300' :
+     verificationRequest?.status === 'pending_review' ? 'bg-sky-500/15 text-sky-300' :
+     'bg-slate-800 text-slate-400');
+}
+
+async function loadVerificationRequest() {
+  verificationRequest = null;
+  if (!currentUser) return renderVerificationStatus();
+  const { data, error } = await db.from('verification_requests').select('*').eq('user_id', currentUser.id).maybeSingle();
+  if (error) {
+    console.error(error);
+    return;
+  }
+  verificationRequest = data;
+  if (data) {
+    $('#verification-type').value = data.verification_type;
+    $('#verification-legal-name').value = data.legal_name || '';
+    $('#verification-office').value = data.office_title || '';
+    $('#verification-jurisdiction').value = data.jurisdiction || '';
+    $('#verification-district').value = data.district || '';
+    $('#verification-filing-id').value = data.filing_id || '';
+    $('#verification-source').value = data.authoritative_source_url || '';
+    $('#verification-email').value = data.official_contact_email || '';
+    $('#verification-date').value = data.verification_type === 'candidate'
+      ? (data.election_date || '') : (data.term_end || '');
+  } else if (currentProfileName) {
+    $('#verification-legal-name').value = currentProfileName;
+  }
+  renderVerificationStatus();
+}
+
+function setupVerification() {
+  $('#verification-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const user = await requireUser();
+    if (!user) return;
+    const type = $('#verification-type').value;
+    const date = $('#verification-date').value || null;
+    const record = {
+      user_id: user.id,
+      verification_type: type,
+      legal_name: $('#verification-legal-name').value.trim(),
+      office_title: $('#verification-office').value.trim(),
+      jurisdiction: $('#verification-jurisdiction').value.trim(),
+      district: $('#verification-district').value.trim() || null,
+      authoritative_source_url: $('#verification-source').value.trim(),
+      filing_id: $('#verification-filing-id').value.trim() || null,
+      official_contact_email: $('#verification-email').value.trim() || null,
+      election_date: type === 'candidate' ? date : null,
+      term_end: type === 'official' ? date : null,
+      identity_status: 'not_started',
+      status: 'pending_identity',
+      rejection_reason: null,
+    };
+    if (type === 'candidate' && !record.filing_id) {
+      showToast('Candidates should enter an election filing or FEC ID.');
+      return;
+    }
+
+    let error;
+    if (verificationRequest) {
+      ({ error } = await db.from('verification_requests').update(record).eq('id', verificationRequest.id));
+    } else {
+      ({ error } = await db.from('verification_requests').insert(record));
+    }
+    if (error) {
+      showToast(error.message, 7000);
+      return;
+    }
+
+    showToast('Application saved. Opening secure identity verification…');
+    const result = await db.functions.invoke('create-identity-verification');
+    if (result.error || !result.data?.url) {
+      showToast(result.data?.error || result.error?.message || 'Identity verification could not start.', 7000);
+      await loadVerificationRequest();
+      return;
+    }
+    window.location.assign(result.data.url);
+  });
+}
+
 function setupStripeButtons() {
   $('#stripe-unlimited')?.addEventListener('click', () => beginCheckout('unlimited'));
   $('#stripe-official')?.addEventListener('click', () => beginCheckout('official'));
@@ -498,6 +605,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupAuthForms();
   setupScopeControls();
   setupForm();
+  setupVerification();
   setupStripeButtons();
   renderFirewallPanel();
   $('#geo-btn')?.addEventListener('click', detectLocation);
@@ -505,10 +613,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await db.auth.getSession();
   currentUser = session?.user || null;
   updateAuthUI();
+  await loadVerificationRequest();
   db.auth.onAuthStateChange((_event, nextSession) => {
     currentUser = nextSession?.user || null;
     updateAuthUI();
+    loadVerificationRequest();
   });
+
+  if (new URLSearchParams(window.location.search).get('identity') === 'return') {
+    showToast('Identity information received. Verification status will update after Stripe confirms it.', 7000);
+    history.replaceState({}, '', window.location.pathname + '#officials');
+    await loadVerificationRequest();
+  }
 
   if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
     showToast('Subscription received. Your plan will update shortly.', 7000);
