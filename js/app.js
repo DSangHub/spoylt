@@ -192,12 +192,12 @@ async function detectLocation() {
     const display = [userLocation.city, userLocation.region].filter(Boolean).join(', ');
     if (label) label.textContent = display;
     if (hero) hero.textContent = '📍 Showing issues near ' + display;
-    if (form) form.textContent = display;
+    updatePostingLocation();
   } catch {
     userLocation = { city: 'Sacramento', region: 'CA', lat: null, lng: null };
     if (label) label.textContent = 'Location unavailable';
     if (hero) hero.textContent = '📍 Enable location to see nearby propositions';
-    if (form) form.textContent = 'Sacramento, CA';
+    updatePostingLocation();
   }
 }
 
