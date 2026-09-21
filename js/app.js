@@ -15,7 +15,23 @@ const CATEGORIES = [
   { id: 'food', label: 'Food Banks Funding', icon: '🥫' },
 ];
 
+const STATES = [
+  ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+  ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],
+  ['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],
+  ['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],
+  ['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],
+  ['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],
+  ['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],
+  ['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],
+  ['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],
+  ['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],
+  ['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming']
+];
+const stateName = (code) => STATES.find(([value]) => value === code)?.[1] || code;
+
 let selectedCategory = null;
+let propositionScope = 'local';
 let currentUser = null;
 let propositions = [];
 let userLocation = { city: 'your area', region: '', lat: null, lng: null };
@@ -210,13 +226,55 @@ function renderCategories() {
 }
 
 function highlightChip(id) {
-  $$('.category-chip').forEach((button) => button.classList.toggle('active', button.dataset.cat === id));
+  $('.category-chip').forEach((button) => button.classList.toggle('active', button.dataset.cat === id));
+}
+
+function updateScopeUI() {
+  propositionScope = $('input[name="proposition-scope"]:checked')?.value || 'local';
+  const isState = propositionScope === 'state';
+  $('#state-fields')?.classList.toggle('hidden', !isState);
+  $('#state-select').required = isState;
+  $('#proposition-number').required = isState;
+  $('#suggestion-label').textContent = isState ? 'Add your opinion' : 'Your suggestion';
+  $('#suggestion').placeholder = isState
+    ? 'Share your opinion on this state proposition and explain why you support or oppose it.'
+    : 'Describe the problem and what you want changed. Be specific. Lawmakers and neighbors will read this.';
+  updatePostingLocation();
+}
+
+function updatePostingLocation() {
+  const formLocation = $('#form-location');
+  if (!formLocation) return;
+  if (propositionScope === 'state') {
+    const state = stateName($('#state-select')?.value || '');
+    const number = ($('#proposition-number')?.value || '').trim();
+    formLocation.textContent = state
+      ? state + ' State' + (number ? ' · Proposition #' + number : '')
+      : 'choose a state and proposition number';
+  } else {
+    formLocation.textContent = [userLocation.city, userLocation.region].filter(Boolean).join(', ') || 'your area';
+  }
+}
+
+function setupScopeControls() {
+  const stateSelect = $('#state-select');
+  if (stateSelect) {
+    stateSelect.insertAdjacentHTML('beforeend', STATES.map(([code, name]) =>
+      '<option value="' + code + '">' + name + '</option>'
+    ).join(''));
+  }
+  $('input[name="proposition-scope"]').forEach((input) =>
+    input.addEventListener('change', updateScopeUI)
+  );
+  stateSelect?.addEventListener('change', updatePostingLocation);
+  $('#proposition-number')?.addEventListener('input', updatePostingLocation);
+  updateScopeUI();
 }
 
 async function loadPropositions() {
   const { data, error } = await db
     .from('propositions')
-    .select('id,user_id,category,title,suggestion,location_city,location_region,created_at,interactions(kind)')
+    .select('id,user_id,category,title,suggestion,scope,state_code,proposition_number,location_city,location_region,created_at,interactions(kind)')
     .order('created_at', { ascending: false })
     .limit(100);
 
@@ -246,14 +304,17 @@ function renderBoard() {
 
   board.innerHTML = propositions.map((p) => {
     const cat = CATEGORIES.find((c) => c.id === p.category) || { icon: '📌', label: 'General' };
-    const location = [p.location_city, p.location_region].filter(Boolean).join(', ') || 'Local';
+    const location = p.scope === 'state'
+      ? stateName(p.state_code) + ' · Proposition #' + escapeHtml(p.proposition_number)
+      : ([p.location_city, p.location_region].filter(Boolean).join(', ') || 'Local');
+    const locationIcon = p.scope === 'state' ? '🏛️ ' : '📍 ';
     return '<article class="glass rounded-xl p-5 card-hover" data-id="' + p.id + '">' +
       '<div class="flex items-start justify-between gap-3 mb-3"><div class="flex items-center gap-2">' +
       '<span class="text-lg">' + cat.icon + '</span><span class="text-xs font-medium text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full">' +
       escapeHtml(cat.label) + '</span></div><span class="text-xs text-slate-500">' + timeAgo(p.created_at) + '</span></div>' +
       '<h3 class="font-semibold text-lg mb-2 leading-snug">' + escapeHtml(p.title) + '</h3>' +
       '<p class="text-sm text-slate-400 mb-4 line-clamp-3">' + escapeHtml(p.suggestion) + '</p>' +
-      '<div class="flex flex-wrap items-center gap-4 text-xs text-slate-500"><span>📍 ' + escapeHtml(location) +
+      '<div class="flex flex-wrap items-center gap-4 text-xs text-slate-500"><span>' + locationIcon + escapeHtml(location) +
       '</span><span>by SPOYLT member</span></div>' +
       '<div class="flex items-center gap-3 mt-4 pt-4 border-t border-slate-700/60">' +
       '<button class="interaction-btn text-sm text-slate-400 hover:text-sky-400 transition" data-kind="like" data-id="' + p.id + '">👍 ' + p.likes + '</button>' +
@@ -306,6 +367,12 @@ function setupForm() {
 
     const title = $('#title').value.trim();
     const suggestion = textarea.value.trim();
+    const stateCode = ($('#state-select')?.value || '').trim();
+    const propositionNumber = ($('#proposition-number')?.value || '').trim();
+    if (propositionScope === 'state' && (!stateCode || !propositionNumber)) {
+      showToast('Choose your state and enter the proposition number.');
+      return;
+    }
     const firewall = window.SpoyltFirewall.inspect({
       email: user.email, displayName: 'Member', title, body: suggestion,
     });
@@ -316,10 +383,13 @@ function setupForm() {
       category: selectedCategory,
       title,
       suggestion,
-      location_city: userLocation.city,
-      location_region: userLocation.region,
-      latitude: userLocation.lat,
-      longitude: userLocation.lng,
+      scope: propositionScope,
+      state_code: propositionScope === 'state' ? stateCode : null,
+      proposition_number: propositionScope === 'state' ? propositionNumber : null,
+      location_city: propositionScope === 'local' ? userLocation.city : null,
+      location_region: propositionScope === 'local' ? userLocation.region : stateCode,
+      latitude: propositionScope === 'local' ? userLocation.lat : null,
+      longitude: propositionScope === 'local' ? userLocation.lng : null,
     });
     if (error) {
       if (error.message.includes('Free plan limit')) {
@@ -332,8 +402,10 @@ function setupForm() {
     form.reset();
     $('#author-email').value = user.email || '';
     selectedCategory = null;
+    propositionScope = 'local';
     highlightChip(null);
     $('#char-count').textContent = '0';
+    updateScopeUI();
     await loadPropositions();
     document.getElementById('board').scrollIntoView({ behavior: 'smooth' });
     showToast('🎉 Your SPOYLT is live!');
@@ -375,6 +447,7 @@ function renderFirewallPanel() {
 document.addEventListener('DOMContentLoaded', async () => {
   renderCategories();
   setupAuthForms();
+  setupScopeControls();
   setupForm();
   setupStripeButtons();
   renderFirewallPanel();
