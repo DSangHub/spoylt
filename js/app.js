@@ -37,6 +37,7 @@ let currentProfileName = '';
 let verifiedOfficial = false;
 let verificationType = null;
 let verificationRequest = null;
+let currentPlan = 'citizen';
 let propositions = [];
 let userLocation = { city: 'your area', region: '', lat: null, lng: null };
 
@@ -71,15 +72,21 @@ function timeAgo(value) {
 async function loadAccountIdentity() {
   currentProfileName = '';
   verifiedOfficial = false;
-  if (!currentUser) return;
+  currentPlan = 'citizen';
+  if (!currentUser) {
+    renderAiModeratorAccess();
+    return;
+  }
 
   const [profileResult, membershipResult] = await Promise.all([
     db.from('profiles').select('display_name').eq('id', currentUser.id).maybeSingle(),
-    db.from('memberships').select('verification_type,verification_status,verification_expires_at,verified_official').eq('user_id', currentUser.id).maybeSingle(),
+    db.from('memberships').select('plan,status,verification_type,verification_status,verification_expires_at,verified_official').eq('user_id', currentUser.id).maybeSingle(),
   ]);
 
   currentProfileName = profileResult.data?.display_name || currentUser.user_metadata?.full_name || '';
   const membership = membershipResult.data;
+  currentPlan = ['active', 'trialing'].includes(membership?.status) ? (membership?.plan || 'citizen') : 'citizen';
+  renderAiModeratorAccess();
   const verificationCurrent = membership?.verification_status === 'verified' &&
     (!membership?.verification_expires_at || new Date(membership.verification_expires_at) > new Date());
   verifiedOfficial = Boolean(verificationCurrent && membership?.verification_type === 'official' && membership?.verified_official);
@@ -130,7 +137,9 @@ function updateAuthUI() {
       verifiedOfficial = false;
       verificationType = null;
       verificationRequest = null;
+      currentPlan = 'citizen';
       renderVerificationStatus();
+      renderAiModeratorAccess();
       showToast('Signed out.');
     };
     loadAccountIdentity();
@@ -580,9 +589,95 @@ function setupVerification() {
   });
 }
 
+function renderAiModeratorAccess() {
+  const premium = Boolean(currentUser && currentPlan === 'premium');
+  const badge = $('#ai-moderator-access');
+  if (badge) {
+    badge.textContent = premium ? 'Premium access active' : currentUser ? 'Upgrade to Premium' : 'Sign in · Premium required';
+    badge.className = 'text-xs font-semibold px-3 py-1.5 rounded-full ' +
+      (premium ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-800 text-slate-400');
+  }
+  ['#ai-check-content', '#ai-draft-reply'].forEach((selector) => {
+    const button = $(selector);
+    if (button) {
+      button.disabled = !premium;
+      button.classList.toggle('opacity-50', !premium);
+      button.classList.toggle('cursor-not-allowed', !premium);
+    }
+  });
+}
+
+async function runAiModerator(action) {
+  const user = await requireUser();
+  if (!user) return;
+  if (currentPlan !== 'premium') {
+    showToast('The OpenAI Chat Moderator is included with the Premium Official plan.');
+    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  const text = ($('#ai-moderator-input')?.value || '').trim();
+  const context = ($('#ai-moderator-context')?.value || '').trim();
+  if (!text) {
+    showToast('Paste a comment or reply first.');
+    return;
+  }
+
+  const output = $('#ai-moderator-output');
+  const button = action === 'draft_reply' ? $('#ai-draft-reply') : $('#ai-check-content');
+  const originalLabel = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.textContent = action === 'draft_reply' ? 'Drafting…' : 'Checking…';
+  }
+  if (output) output.value = 'OpenAI is reviewing the content…';
+
+  const { data, error } = await db.functions.invoke('openai-moderator', {
+    body: { action, text, context },
+  });
+
+  if (button) {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+  if (error || data?.error) {
+    const message = data?.error || error?.message || 'The AI moderator is unavailable.';
+    if (output) output.value = message;
+    showToast(message, 7000);
+    return;
+  }
+  if (!data?.allowed) {
+    const categories = Array.isArray(data?.categories) && data.categories.length
+      ? '\nFlagged categories: ' + data.categories.join(', ')
+      : '';
+    if (output) output.value = (data?.message || 'Content was flagged.') + categories;
+    showToast('Content was flagged. Review it before posting.', 7000);
+    return;
+  }
+
+  if (output) output.value = data.reply || data.message || 'No high-risk content was detected.';
+  showToast(action === 'draft_reply' ? 'Suggested reply is ready for your review.' : 'Content check complete.');
+}
+
+function setupAiModerator() {
+  $('#ai-check-content')?.addEventListener('click', () => runAiModerator('moderate'));
+  $('#ai-draft-reply')?.addEventListener('click', () => runAiModerator('draft_reply'));
+  $('#ai-copy-reply')?.addEventListener('click', async () => {
+    const text = $('#ai-moderator-output')?.value || '';
+    if (!text) return showToast('There is no result to copy yet.');
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Result copied.');
+    } catch {
+      showToast('Copy failed. Select the text and copy it manually.');
+    }
+  });
+  renderAiModeratorAccess();
+}
+
 function setupStripeButtons() {
   $('#stripe-unlimited')?.addEventListener('click', () => beginCheckout('unlimited'));
   $('#stripe-official')?.addEventListener('click', () => beginCheckout('official'));
+  $('#stripe-premium')?.addEventListener('click', () => beginCheckout('premium'));
   $('#official-cta')?.addEventListener('click', () =>
     document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' })
   );
@@ -607,6 +702,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupForm();
   setupVerification();
   setupStripeButtons();
+  setupAiModerator();
   renderFirewallPanel();
   $('#geo-btn')?.addEventListener('click', detectLocation);
 
