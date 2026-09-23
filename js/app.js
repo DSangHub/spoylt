@@ -13,6 +13,7 @@ const CATEGORIES = [
   { id: 'police', label: 'Police Protection', icon: '👮' },
   { id: 'animal', label: 'Animal Services', icon: '🐾' },
   { id: 'food', label: 'Food Banks Funding', icon: '🥫' },
+  { id: 'elections', label: 'Elections & Government', icon: '🗳️' },
 ];
 
 const STATES = [
@@ -30,6 +31,17 @@ const STATES = [
 ];
 const stateName = (code) => STATES.find(([value]) => value === code)?.[1] || code;
 
+const CA_COUNTIES = [
+  'Alameda','Alpine','Amador','Butte','Calaveras','Colusa','Contra Costa','Del Norte',
+  'El Dorado','Fresno','Glenn','Humboldt','Imperial','Inyo','Kern','Kings','Lake',
+  'Lassen','Los Angeles','Madera','Marin','Mariposa','Mendocino','Merced','Modoc',
+  'Mono','Monterey','Napa','Nevada','Orange','Placer','Plumas','Riverside',
+  'Sacramento','San Benito','San Bernardino','San Diego','San Francisco','San Joaquin',
+  'San Luis Obispo','San Mateo','Santa Barbara','Santa Clara','Santa Cruz','Shasta',
+  'Sierra','Siskiyou','Solano','Sonoma','Stanislaus','Sutter','Tehama','Trinity',
+  'Tulare','Tuolumne','Ventura','Yolo','Yuba'
+];
+
 let selectedCategory = null;
 let propositionScope = 'local';
 let currentUser = null;
@@ -39,6 +51,7 @@ let verificationType = null;
 let verificationRequest = null;
 let currentPlan = 'citizen';
 let propositions = [];
+let ballotMeasures = [];
 let userLocation = { city: 'your area', region: '', lat: null, lng: null };
 
 const $ = (s) => document.querySelector(s);
@@ -297,46 +310,133 @@ function highlightChip(id) {
   $('.category-chip').forEach((button) => button.classList.toggle('active', button.dataset.cat === id));
 }
 
+function matchingBallotMeasures() {
+  const state = $('#state-select')?.value || '';
+  const county = $('#county-select')?.value || '';
+  return ballotMeasures.filter((measure) => {
+    if (measure.state_code !== state || measure.scope !== propositionScope) return false;
+    return propositionScope === 'state' || measure.county_name === county;
+  });
+}
+
+function refreshBallotMeasureOptions() {
+  const select = $('#ballot-measure-select');
+  if (!select) return;
+  const matches = matchingBallotMeasures();
+  const fallback = propositionScope === 'state'
+    ? 'Other state proposition — enter number below'
+    : 'Other local proposition — enter measure letter/number below';
+  select.innerHTML = '<option value="">' + fallback + '</option>' +
+    matches.map((measure) =>
+      '<option value="' + escapeHtml(measure.id) + '">' +
+      (measure.scope === 'state' ? 'Proposition ' : 'Measure ') +
+      escapeHtml(measure.measure_number) + ' — ' + escapeHtml(measure.title) +
+      '</option>'
+    ).join('');
+}
+
+function applySelectedBallotMeasure() {
+  const id = $('#ballot-measure-select')?.value || '';
+  const measure = ballotMeasures.find((item) => item.id === id);
+  const source = $('#ballot-source-link');
+  if (!measure) {
+    if (source) source.classList.add('hidden');
+    updatePostingLocation();
+    return;
+  }
+  $('#proposition-number').value = measure.measure_number || '';
+  const title = $('#title');
+  if (title) title.value = (measure.title || '').slice(0, 120);
+  selectedCategory = 'elections';
+  highlightChip(selectedCategory);
+  if (source) {
+    source.href = measure.source_url;
+    source.classList.remove('hidden');
+  }
+  updatePostingLocation();
+}
+
+async function loadBallotMeasures() {
+  const { data, error } = await db
+    .from('ballot_measures')
+    .select('id,election_date,state_code,county_name,jurisdiction,scope,measure_number,title,source_url')
+    .eq('active', true)
+    .eq('election_date', '2026-11-03')
+    .order('measure_number', { ascending: true });
+  if (error) {
+    console.error(error);
+    const select = $('#ballot-measure-select');
+    if (select) select.innerHTML = '<option value="">Enter a proposition manually below</option>';
+    return;
+  }
+  ballotMeasures = data || [];
+  refreshBallotMeasureOptions();
+}
+
 function updateScopeUI() {
   propositionScope = $('input[name="proposition-scope"]:checked')?.value || 'local';
   const isState = propositionScope === 'state';
-  $('#state-fields')?.classList.toggle('hidden', !isState);
-  $('#state-select').required = isState;
-  $('#proposition-number').required = isState;
-  $('#suggestion-label').textContent = isState ? 'Add your opinion' : 'Your suggestion';
+  $('#county-field')?.classList.toggle('hidden', isState);
+  $('#suggestion-label').textContent = 'Add your opinion';
   $('#suggestion').placeholder = isState
     ? 'Share your opinion on this state proposition and explain why you support or oppose it.'
-    : 'Describe the problem and what you want changed. Be specific. Lawmakers and neighbors will read this.';
+    : 'Share your opinion on this local proposition and explain why you support or oppose it.';
+  refreshBallotMeasureOptions();
+  applySelectedBallotMeasure();
   updatePostingLocation();
 }
 
 function updatePostingLocation() {
   const formLocation = $('#form-location');
   if (!formLocation) return;
+  const stateCode = $('#state-select')?.value || '';
+  const state = stateName(stateCode);
+  const county = $('#county-select')?.value || '';
+  const number = ($('#proposition-number')?.value || '').trim();
   if (propositionScope === 'state') {
-    const state = stateName($('#state-select')?.value || '');
-    const number = ($('#proposition-number')?.value || '').trim();
-    formLocation.textContent = state
-      ? state + ' State' + (number ? ' · Proposition #' + number : '')
-      : 'choose a state and proposition number';
+    formLocation.textContent = stateCode
+      ? state + (number ? ' · Proposition ' + number : ' statewide')
+      : 'choose a state';
   } else {
-    formLocation.textContent = [userLocation.city, userLocation.region].filter(Boolean).join(', ') || 'your area';
+    const place = county
+      ? county + ' County, ' + (stateCode || 'CA')
+      : ([userLocation.city, userLocation.region].filter(Boolean).join(', ') || 'your area');
+    formLocation.textContent = place + (number ? ' · Measure ' + number : '');
   }
 }
 
 function setupScopeControls() {
   const stateSelect = $('#state-select');
+  const countySelect = $('#county-select');
   if (stateSelect) {
     stateSelect.insertAdjacentHTML('beforeend', STATES.map(([code, name]) =>
       '<option value="' + code + '">' + name + '</option>'
+    ).join(''));
+    stateSelect.value = 'CA';
+  }
+  if (countySelect) {
+    countySelect.insertAdjacentHTML('beforeend', CA_COUNTIES.map((county) =>
+      '<option value="' + county + '">' + county + ' County</option>'
     ).join(''));
   }
   $('input[name="proposition-scope"]').forEach((input) =>
     input.addEventListener('change', updateScopeUI)
   );
-  stateSelect?.addEventListener('change', updatePostingLocation);
+  stateSelect?.addEventListener('change', () => {
+    if (stateSelect.value !== 'CA' && countySelect) countySelect.value = '';
+    refreshBallotMeasureOptions();
+    applySelectedBallotMeasure();
+    updatePostingLocation();
+  });
+  countySelect?.addEventListener('change', () => {
+    refreshBallotMeasureOptions();
+    applySelectedBallotMeasure();
+    updatePostingLocation();
+  });
+  $('#ballot-measure-select')?.addEventListener('change', applySelectedBallotMeasure);
   $('#proposition-number')?.addEventListener('input', updatePostingLocation);
   updateScopeUI();
+  loadBallotMeasures();
 }
 
 async function loadPropositions() {
@@ -439,9 +539,14 @@ function setupForm() {
     const title = $('#title').value.trim();
     const suggestion = textarea.value.trim();
     const stateCode = ($('#state-select')?.value || '').trim();
+    const county = ($('#county-select')?.value || '').trim();
     const propositionNumber = ($('#proposition-number')?.value || '').trim();
-    if (propositionScope === 'state' && (!stateCode || !propositionNumber)) {
-      showToast('Choose your state and enter the proposition number.');
+    if (!stateCode) {
+      showToast('Choose a state first.');
+      return;
+    }
+    if (propositionScope === 'state' && !propositionNumber) {
+      showToast('Choose an official proposition or enter its number.');
       return;
     }
     const { data: moderation, error } = await db.rpc('submit_proposition', {
@@ -449,12 +554,12 @@ function setupForm() {
       p_title: title,
       p_suggestion: suggestion,
       p_scope: propositionScope,
-      p_state_code: propositionScope === 'state' ? stateCode : null,
-      p_proposition_number: propositionScope === 'state' ? propositionNumber : null,
-      p_location_city: propositionScope === 'local' ? userLocation.city : null,
-      p_location_region: propositionScope === 'local' ? userLocation.region : stateCode,
-      p_latitude: propositionScope === 'local' ? userLocation.lat : null,
-      p_longitude: propositionScope === 'local' ? userLocation.lng : null,
+      p_state_code: stateCode,
+      p_proposition_number: propositionNumber || null,
+      p_location_city: propositionScope === 'local' ? (county || userLocation.city) : null,
+      p_location_region: propositionScope === 'local' ? stateCode : stateCode,
+      p_latitude: propositionScope === 'local' && !county ? userLocation.lat : null,
+      p_longitude: propositionScope === 'local' && !county ? userLocation.lng : null,
     });
     if (error) {
       showToast('The Community Firewall could not process that proposition. Please try again.');
