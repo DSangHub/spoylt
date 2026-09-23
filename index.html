@@ -237,16 +237,30 @@
             </label>
           </div>
         </fieldset>
-        <div id="state-fields" class="hidden grid sm:grid-cols-2 gap-4">
+        <div id="state-fields" class="grid sm:grid-cols-2 gap-4">
           <div>
-            <label for="state-select" class="block text-sm font-medium text-slate-300 mb-2">Choose your state</label>
+            <label for="state-select" class="block text-sm font-medium text-slate-300 mb-2">State</label>
             <select id="state-select" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
               <option value="">Select a state</option>
             </select>
           </div>
-          <div>
-            <label for="proposition-number" class="block text-sm font-medium text-slate-300 mb-2">Proposition #</label>
-            <input type="text" id="proposition-number" maxlength="30" placeholder="e.g. 36" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          <div id="county-field">
+            <label for="county-select" class="block text-sm font-medium text-slate-300 mb-2">County</label>
+            <select id="county-select" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="">Use my current location</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label for="ballot-measure-select" class="block text-sm font-medium text-slate-300 mb-2">November 3, 2026 proposition</label>
+            <select id="ballot-measure-select" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="">Loading official propositions…</option>
+            </select>
+            <a id="ballot-source-link" href="https://www.sos.ca.gov/elections/ballot-measures/qualified-ballot-measures" target="_blank" rel="noopener noreferrer" class="hidden text-xs text-sky-400 hover:underline mt-2 inline-block">View official election source ↗</a>
+          </div>
+          <div class="sm:col-span-2">
+            <label for="proposition-number" class="block text-sm font-medium text-slate-300 mb-2">Measure or proposition number</label>
+            <input type="text" id="proposition-number" maxlength="30" placeholder="Filled automatically, or enter a local measure letter/number" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            <p class="text-xs text-slate-500 mt-2">California statewide propositions are loaded from the Secretary of State. County measures appear as their official guides are added.</p>
           </div>
         </div>
         <div>
