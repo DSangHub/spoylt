@@ -322,7 +322,9 @@ function matchingBallotMeasures() {
 function refreshBallotMeasureOptions() {
   const select = $('#ballot-measure-select');
   if (!select) return;
-  const matches = matchingBallotMeasures();
+  const matches = matchingBallotMeasures().sort((a, b) =>
+    String(a.measure_number).localeCompare(String(b.measure_number), undefined, { numeric: true })
+  );
   const fallback = propositionScope === 'state'
     ? 'Other state proposition — enter number below'
     : 'Other local proposition — enter measure letter/number below';
@@ -574,6 +576,8 @@ function setupForm() {
 
     form.reset();
     $('#author-email').value = user.email || '';
+    if ($('#state-select')) $('#state-select').value = 'CA';
+    if ($('#county-select')) $('#county-select').value = '';
     selectedCategory = null;
     propositionScope = 'local';
     highlightChip(null);
