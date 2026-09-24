@@ -360,6 +360,29 @@
   </section>
 
   <!-- Public Officials -->
+  <section id="campaign-flyers" class="py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-bold mb-2">Political flyers in your area</h2>
+      <p id="flyer-location-note" class="text-sm text-slate-400 mb-5">Enable location to see approved local political flyers. Your current location does not establish your voting address.</p>
+      <div id="flyer-list" class="grid md:grid-cols-2 gap-4"></div>
+      <div class="glass rounded-2xl p-6 mt-8">
+        <h3 class="text-xl font-bold mb-2">Submit a digital campaign flyer</h3>
+        <p class="text-sm text-slate-400 mb-5">Available to verified candidates and officials. Every flyer and its sponsor disclosure is reviewed before appearing. Ads are separate from community posts.</p>
+        <form id="flyer-form" class="grid sm:grid-cols-2 gap-4">
+          <input id="flyer-headline" required maxlength="140" minlength="5" placeholder="Flyer headline" aria-label="Flyer headline" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white sm:col-span-2" />
+          <textarea id="flyer-body" required maxlength="1200" minlength="10" placeholder="Campaign message" aria-label="Campaign message" rows="4" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white sm:col-span-2"></textarea>
+          <input id="flyer-sponsor" required maxlength="180" minlength="3" placeholder="Paid for by (legal sponsor name)" aria-label="Paid for by" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white sm:col-span-2" />
+          <select id="flyer-state" required aria-label="Target state" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white"></select>
+          <select id="flyer-scope" aria-label="Target area" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white"><option value="state">Entire state</option><option value="county">County</option><option value="city">City</option></select>
+          <input id="flyer-county" maxlength="100" placeholder="County (for county or city ads)" aria-label="Target county" class="hidden bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          <input id="flyer-city" maxlength="100" placeholder="City (for city ads)" aria-label="Target city" class="hidden bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          <label class="text-sm text-slate-300">Election date <input id="flyer-election" type="date" required class="block mt-2 w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" /></label>
+          <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold py-3 rounded-xl">Submit flyer for review</button>
+        </form>
+        <p id="flyer-submit-status" class="text-sm text-slate-400 mt-4" role="status"></p>
+      </div>
+    </div>
+  </section>
   <section id="officials" class="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
     <div class="max-w-5xl mx-auto">
       <div class="glass rounded-3xl p-8 sm:p-12 relative overflow-hidden">

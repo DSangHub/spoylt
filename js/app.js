@@ -52,7 +52,7 @@ let verificationRequest = null;
 let currentPlan = 'citizen';
 let propositions = [];
 let ballotMeasures = [];
-let userLocation = { city: 'your area', region: '', lat: null, lng: null };
+let userLocation = { city: 'your area', county: '', stateCode: '', region: '', lat: null, lng: null };
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -269,17 +269,99 @@ async function detectLocation() {
     );
     const address = (await response.json()).address || {};
     userLocation.city = address.city || address.town || address.village || address.county || 'Your area';
+    userLocation.county = (address.county || '').replace(/ County$/i, '').trim();
+    userLocation.stateCode = (address['ISO3166-2-lvl4'] || '').split('-')[1] ||
+      STATES.find(([, name]) => name.toLowerCase() === (address.state || '').toLowerCase())?.[0] || '';
     userLocation.region = address.state || '';
     const display = [userLocation.city, userLocation.region].filter(Boolean).join(', ');
     if (label) label.textContent = display;
     if (hero) hero.textContent = '📍 Showing issues near ' + display;
     updatePostingLocation();
+    loadPoliticalFlyers();
   } catch {
-    userLocation = { city: 'Sacramento', region: 'CA', lat: null, lng: null };
+    userLocation = { city: 'your area', county: '', stateCode: '', region: '', lat: null, lng: null };
     if (label) label.textContent = 'Location unavailable';
     if (hero) hero.textContent = '📍 Enable location to see nearby propositions';
     updatePostingLocation();
+    loadPoliticalFlyers();
   }
+}
+
+function normalizeArea(value) {
+  return String(value || '').replace(/\s+(County|City)$/i, '').trim().toLowerCase();
+}
+
+async function loadPoliticalFlyers() {
+  const list = $('#flyer-list');
+  const note = $('#flyer-location-note');
+  if (!list) return;
+  if (!userLocation.stateCode) {
+    list.innerHTML = '';
+    note.textContent = 'Enable location to see approved local political flyers. Your current location does not establish your voting address.';
+    return;
+  }
+  note.textContent = 'Approved ads for your current area in ' + userLocation.region + '. Location does not establish your voting address.';
+  const { data, error } = await db.from('political_flyers')
+    .select('id,headline,body,paid_for_by,target_scope,target_county,target_city,election_date')
+    .eq('status', 'approved').eq('target_state', userLocation.stateCode)
+    .gte('election_date', new Date().toISOString().slice(0, 10))
+    .order('created_at', { ascending: false }).limit(100);
+  if (error) {
+    note.textContent = 'Political flyers are unavailable right now.';
+    list.innerHTML = '';
+    return;
+  }
+  const matches = (data || []).filter((flyer) =>
+    flyer.target_scope === 'state' ||
+    (normalizeArea(flyer.target_county) === normalizeArea(userLocation.county) &&
+      (flyer.target_scope === 'county' || normalizeArea(flyer.target_city) === normalizeArea(userLocation.city)))
+  );
+  list.innerHTML = matches.map((flyer) =>
+    '<article class="glass rounded-xl p-6 border border-amber-500/30">' +
+    '<p class="text-xs font-semibold text-amber-300 mb-3">Paid political advertisement</p>' +
+    '<h3 class="text-xl font-bold mb-2">' + escapeHtml(flyer.headline) + '</h3>' +
+    '<p class="text-sm text-slate-300 whitespace-pre-wrap">' + escapeHtml(flyer.body) + '</p>' +
+    '<p class="text-xs text-slate-400 mt-4">Paid for by ' + escapeHtml(flyer.paid_for_by) +
+    ' · Election ' + escapeHtml(flyer.election_date) + '</p></article>'
+  ).join('');
+  if (!matches.length) note.textContent += ' No approved political flyers match this area.';
+}
+
+function setupPoliticalFlyers() {
+  const state = $('#flyer-state');
+  if (!state) return;
+  state.innerHTML = '<option value="">Choose state</option>' + STATES.map(([code, name]) =>
+    '<option value="' + code + '">' + escapeHtml(name) + '</option>').join('');
+  const scope = $('#flyer-scope');
+  const updateScope = () => {
+    $('#flyer-county').classList.toggle('hidden', scope.value === 'state');
+    $('#flyer-county').required = scope.value !== 'state';
+    $('#flyer-city').classList.toggle('hidden', scope.value !== 'city');
+    $('#flyer-city').required = scope.value === 'city';
+  };
+  scope.addEventListener('change', updateScope);
+  updateScope();
+  $('#flyer-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const user = await requireUser();
+    if (!user) return;
+    const status = $('#flyer-submit-status');
+    const { error } = await db.from('political_flyers').insert({
+      owner_id: user.id,
+      headline: $('#flyer-headline').value.trim(),
+      body: $('#flyer-body').value.trim(),
+      paid_for_by: $('#flyer-sponsor').value.trim(),
+      target_state: state.value,
+      target_scope: scope.value,
+      target_county: scope.value === 'state' ? null : $('#flyer-county').value.trim(),
+      target_city: scope.value === 'city' ? $('#flyer-city').value.trim() : null,
+      election_date: $('#flyer-election').value,
+    });
+    status.textContent = error ? 'Submission failed. Verify your candidate or official account and check all fields.' :
+      'Flyer submitted for review. It will appear only after sponsor and geographic approval.';
+    if (!error) $('#flyer-form').reset();
+    updateScope();
+  });
 }
 
 function renderCategories() {
@@ -810,6 +892,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupScopeControls();
   setupForm();
   setupVerification();
+  setupPoliticalFlyers();
   setupStripeButtons();
   setupAiModerator();
   renderFirewallPanel();

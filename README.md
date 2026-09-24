@@ -152,3 +152,8 @@ spoylt/
 ---
 
 Built for citizens who refuse to stay silent.
+# Geographic political flyers
+
+Verified candidates and officials can submit text flyers under **Political flyers in your area**. Submissions remain `pending_review`; the browser cannot approve, edit, or delete them. A trusted reviewer must verify the sponsor disclosure, campaign authority, election date, content, and target state/county/city before changing `status` to `approved` and setting `reviewed_at = now()` in Supabase. Reject or pause from the trusted database console; never add approval rights to browser roles. If verification is revoked, pause that campaign's approved flyers immediately.
+
+Only approved, reviewed, unexpired flyers are readable to the public. Visitors must allow geolocation; detected state, county, and city determine visibility. District-specific placement requires a validated district boundary lookup and is not yet available. Device location is not a voting address. The MVP is text-only, so externally hosted images cannot track visitors. Paid political ads are clearly labeled and kept separate from community propositions.
