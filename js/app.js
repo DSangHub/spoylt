@@ -332,6 +332,13 @@ function setupPoliticalFlyers() {
   if (!state) return;
   state.innerHTML = '<option value="">Choose state</option>' + STATES.map(([code, name]) =>
     '<option value="' + code + '">' + escapeHtml(name) + '</option>').join('');
+  const updateCommitteeId = () => {
+    const field = $('#flyer-committee-id');
+    field.classList.toggle('hidden', state.value !== 'CA');
+    field.required = state.value === 'CA';
+  };
+  state.addEventListener('change', updateCommitteeId);
+  updateCommitteeId();
   const scope = $('#flyer-scope');
   const updateScope = () => {
     $('#flyer-county').classList.toggle('hidden', scope.value === 'state');
@@ -346,22 +353,53 @@ function setupPoliticalFlyers() {
     const user = await requireUser();
     if (!user) return;
     const status = $('#flyer-submit-status');
+    if (state.value === 'CA' &&
+      $('#flyer-committee-id').value.trim() !== ($('#verification-filing-id').value || '').trim()) {
+      status.textContent = 'Enter the same California campaign committee ID in your verification profile and on this flyer.';
+      return;
+    }
     const { error } = await db.from('political_flyers').insert({
       owner_id: user.id,
       headline: $('#flyer-headline').value.trim(),
       body: $('#flyer-body').value.trim(),
       paid_for_by: $('#flyer-sponsor').value.trim(),
       target_state: state.value,
+      committee_id: state.value === 'CA' ? $('#flyer-committee-id').value.trim() : null,
       target_scope: scope.value,
       target_county: scope.value === 'state' ? null : $('#flyer-county').value.trim(),
       target_city: scope.value === 'city' ? $('#flyer-city').value.trim() : null,
       election_date: $('#flyer-election').value,
     });
-    status.textContent = error ? 'Submission failed. Verify your candidate or official account and check all fields.' :
-      'Flyer submitted for review. It will appear only after sponsor and geographic approval.';
-    if (!error) $('#flyer-form').reset();
+    status.textContent = error ? 'Could not save your flyer. Check the election date and required fields.' :
+      'Saved to your profile. It stays hidden until identity, campaign ID, sponsor, and placement are approved.';
+    if (!error) {
+      $('#flyer-form').reset();
+      loadMyFlyers();
+    }
     updateScope();
+    updateCommitteeId();
   });
+}
+
+async function loadMyFlyers() {
+  const box = $('#my-flyers');
+  if (!box) return;
+  if (!currentUser) {
+    box.innerHTML = '<p class="text-sm text-slate-400">Sign in to see your submitted flyers.</p>';
+    return;
+  }
+  const { data, error } = await db.from('political_flyers')
+    .select('id,headline,status,created_at,committee_id').eq('owner_id', currentUser.id)
+    .order('created_at', { ascending: false }).limit(30);
+  if (error) {
+    box.textContent = 'Your flyers could not load right now.';
+    return;
+  }
+  box.innerHTML = '<h4 class="font-semibold">My campaign flyers</h4>' +
+    ((data || []).length ? data.map((flyer) =>
+      '<div class="border border-slate-700 rounded-lg p-3 text-sm"><strong>' + escapeHtml(flyer.headline) +
+      '</strong><span class="text-slate-400"> · ' + escapeHtml(flyer.status.replaceAll('_', ' ')) +
+      '</span></div>').join('') : '<p class="text-sm text-slate-400">No flyers saved yet.</p>');
 }
 
 function renderCategories() {
@@ -720,6 +758,7 @@ async function loadVerificationRequest() {
     $('#verification-jurisdiction').value = data.jurisdiction || '';
     $('#verification-district').value = data.district || '';
     $('#verification-filing-id').value = data.filing_id || '';
+    if ($('#flyer-committee-id') && data.filing_id) $('#flyer-committee-id').value = data.filing_id;
     $('#verification-source').value = data.authoritative_source_url || '';
     $('#verification-email').value = data.official_contact_email || '';
     $('#verification-date').value = data.verification_type === 'candidate'
@@ -902,10 +941,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   currentUser = session?.user || null;
   updateAuthUI();
   await loadVerificationRequest();
+  await loadMyFlyers();
   db.auth.onAuthStateChange((_event, nextSession) => {
     currentUser = nextSession?.user || null;
     updateAuthUI();
     loadVerificationRequest();
+    loadMyFlyers();
   });
 
   if (new URLSearchParams(window.location.search).get('identity') === 'return') {
