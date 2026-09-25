@@ -11,6 +11,9 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: cors });
   try {
+    if (Deno.env.get("FLYER_PAYMENTS_ENABLED") !== "true") {
+      throw new Error("Flyer payments are being configured. No charge has been made.");
+    }
     const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
     if (!token) throw new Error("Sign in to pay for your flyer.");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
