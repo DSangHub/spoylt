@@ -46,21 +46,43 @@ Deno.serve(async (req: Request) => {
         }
         const paymentIntentId = typeof session.payment_intent === "string"
           ? session.payment_intent : session.payment_intent?.id;
-        if (!paymentIntentId) throw new Error("Flyer payment intent missing.");
+        if (!paymentIntentId || session.client_reference_id !== session.metadata.flyer_id) {
+          throw new Error("Flyer payment intent or client reference mismatch.");
+        }
+        // Stripe can deliver a refund before a delayed success event (or retry a
+        // success after a refund). Reconcile against the current charge state.
+        const intent = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
+        if (intent.status !== "succeeded" || intent.amount_received !== 49500 ||
+            intent.currency !== "usd" || intent.metadata.kind !== "political_flyer" ||
+            intent.metadata.flyer_id !== session.metadata.flyer_id) {
+          throw new Error("Flyer payment intent does not match the checkout.");
+        }
+        const charge = intent.latest_charge;
+        const refunded = typeof charge !== "string" && charge != null && charge.amount_refunded > 0;
+        const paymentStatus = refunded ? "refunded" : "paid";
         const { data: updated, error: flyerError } = await admin.from("political_flyers")
-          .update({ payment_status: "paid", stripe_payment_intent_id: paymentIntentId,
-            paid_at: new Date().toISOString(), status: "approved" })
+          .update({ payment_status: paymentStatus, stripe_payment_intent_id: paymentIntentId,
+            paid_at: new Date().toISOString(), status: refunded ? "paused" : "approved" })
           .eq("id", session.metadata.flyer_id).eq("owner_id", session.metadata.user_id)
           .eq("stripe_checkout_session_id", session.id)
           .eq("status", "awaiting_payment").eq("payment_status", "unpaid")
           .select("id").maybeSingle();
         if (flyerError) throw flyerError;
         if (!updated) {
-          const { data: prior } = await admin.from("political_flyers")
-            .select("id").eq("id", session.metadata.flyer_id)
+          const { data: prior, error: priorError } = await admin.from("political_flyers")
+            .select("id,payment_status").eq("id", session.metadata.flyer_id)
+            .eq("owner_id", session.metadata.user_id)
             .eq("stripe_checkout_session_id", session.id).eq("stripe_payment_intent_id", paymentIntentId)
-            .eq("payment_status", "paid").maybeSingle();
+            .in("payment_status", ["paid", "refunded"]).maybeSingle();
+          if (priorError) throw priorError;
           if (!prior) throw new Error("Flyer payment did not match a reviewed pending flyer.");
+          if (refunded && prior.payment_status === "paid") {
+            const { error: refundError } = await admin.from("political_flyers")
+              .update({ payment_status: "refunded", status: "paused" })
+              .eq("id", prior.id).eq("payment_status", "paid")
+              .eq("stripe_payment_intent_id", paymentIntentId);
+            if (refundError) throw refundError;
+          }
         }
       }
     }
