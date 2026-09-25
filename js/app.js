@@ -317,7 +317,7 @@ async function loadPoliticalFlyers() {
       (flyer.target_scope === 'county' || normalizeArea(flyer.target_city) === normalizeArea(userLocation.city)))
   );
   list.innerHTML = matches.map((flyer) =>
-    '<article class="glass rounded-xl p-6 border border-amber-500/30">' +
+    '<article class="glass rounded-xl p-5 border border-amber-500/30" style="width:min(100%,2.5in);aspect-ratio:5/8;overflow-y:auto">' +
     '<p class="text-xs font-semibold text-amber-300 mb-3">Paid political advertisement</p>' +
     '<h3 class="text-xl font-bold mb-2">' + escapeHtml(flyer.headline) + '</h3>' +
     '<p class="text-sm text-slate-300 whitespace-pre-wrap">' + escapeHtml(flyer.body) + '</p>' +
@@ -348,6 +348,22 @@ function setupPoliticalFlyers() {
   };
   scope.addEventListener('change', updateScope);
   updateScope();
+  $('#my-flyers')?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-pay-flyer]');
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    button.textContent = 'Opening checkout…';
+    const { data, error } = await db.functions.invoke('create-flyer-checkout', {
+      body: { flyer_id: button.dataset.payFlyer },
+    });
+    if (error || !data?.url) {
+      $('#flyer-submit-status').textContent = data?.error || error?.message || 'Checkout could not start.';
+      button.disabled = false;
+      button.textContent = 'Pay $495 for this flyer';
+      return;
+    }
+    window.location.assign(data.url);
+  });
   $('#flyer-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const user = await requireUser();
@@ -389,7 +405,7 @@ async function loadMyFlyers() {
     return;
   }
   const { data, error } = await db.from('political_flyers')
-    .select('id,headline,status,created_at,committee_id').eq('owner_id', currentUser.id)
+    .select('id,headline,status,payment_status,created_at,committee_id').eq('owner_id', currentUser.id)
     .order('created_at', { ascending: false }).limit(30);
   if (error) {
     box.textContent = 'Your flyers could not load right now.';
@@ -399,7 +415,10 @@ async function loadMyFlyers() {
     ((data || []).length ? data.map((flyer) =>
       '<div class="border border-slate-700 rounded-lg p-3 text-sm"><strong>' + escapeHtml(flyer.headline) +
       '</strong><span class="text-slate-400"> · ' + escapeHtml(flyer.status.replaceAll('_', ' ')) +
-      '</span></div>').join('') : '<p class="text-sm text-slate-400">No flyers saved yet.</p>');
+      '</span>' + (flyer.status === 'awaiting_payment' && flyer.payment_status === 'unpaid'
+        ? '<button type="button" data-pay-flyer="' + escapeHtml(flyer.id) +
+          '" class="block mt-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg">Pay $495 for this flyer</button>'
+        : '') + '</div>').join('') : '<p class="text-sm text-slate-400">No flyers saved yet.</p>');
 }
 
 function renderCategories() {
@@ -958,6 +977,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
     showToast('Subscription received. Your plan will update shortly.', 7000);
     history.replaceState({}, '', window.location.pathname);
+  }
+
+  if (new URLSearchParams(window.location.search).get('flyer_checkout') === 'return') {
+    showToast('Payment received by Stripe. Your flyer will appear when its payment status is confirmed.', 7000);
+    history.replaceState({}, '', window.location.pathname + '#my-campaign-profile');
+    await loadMyFlyers();
   }
 
   await Promise.all([loadPropositions(), detectLocation()]);
