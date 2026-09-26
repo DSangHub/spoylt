@@ -475,7 +475,7 @@ function renderCategories() {
 }
 
 function highlightChip(id) {
-  $('.category-chip').forEach((button) => button.classList.toggle('active', button.dataset.cat === id));
+  $$('.category-chip').forEach((button) => button.classList.toggle('active', button.dataset.cat === id));
 }
 
 function matchingBallotMeasures() {
@@ -589,7 +589,7 @@ function setupScopeControls() {
       '<option value="' + county + '">' + county + ' County</option>'
     ).join(''));
   }
-  $('input[name="proposition-scope"]').forEach((input) =>
+  $$('input[name="proposition-scope"]').forEach((input) =>
     input.addEventListener('change', updateScopeUI)
   );
   stateSelect?.addEventListener('change', () => {
