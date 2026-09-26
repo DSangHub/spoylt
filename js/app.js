@@ -1,8 +1,21 @@
 // SPOYLT production client — Supabase Auth, Database, Realtime, and Stripe Checkout
 const SUPABASE_URL = 'https://xceamvdvjnutaovqpsbr.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_uE5aJ-o74jGRS983ND15pg_2xxLVEzw';
+const REMEMBER_KEY = 'spoylt-stay-signed-in';
+const sessionStorageAdapter = {
+  getItem(key) {
+    return (localStorage.getItem(REMEMBER_KEY) === 'false' ? sessionStorage : localStorage).getItem(key);
+  },
+  setItem(key, value) {
+    (localStorage.getItem(REMEMBER_KEY) === 'false' ? sessionStorage : localStorage).setItem(key, value);
+  },
+  removeItem(key) {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  },
+};
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: sessionStorageAdapter },
 });
 
 const CATEGORIES = [
@@ -181,13 +194,14 @@ function friendlyAuthError(error) {
   return message;
 }
 
-async function createAccount(email, password, fullName) {
+async function createAccount(email, password, username, firstName, lastName) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
   const { data, error } = await db.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: 'https://www.spoylt.org/',
-      data: { full_name: fullName.trim() || 'SPOYLT member' },
+      data: { full_name: fullName, first_name: firstName, last_name: lastName, username },
     },
   });
   if (error) {
@@ -201,21 +215,24 @@ async function createAccount(email, password, fullName) {
   }
 }
 
-async function signIn(email, password, fullName) {
+async function signIn(email, password) {
+  const staySignedIn = $('#stay-signed-in')?.checked !== false;
+  // Move an existing session to the chosen browser storage after successful authentication.
+  const oldStorage = localStorage.getItem(REMEMBER_KEY) === 'false' ? sessionStorage : localStorage;
   const { data, error } = await db.auth.signInWithPassword({ email, password });
   if (error) {
     showToast(friendlyAuthError(error), 7000);
     return;
   }
 
-  const name = fullName.trim();
-  if (name && data.user) {
-    const { error: profileError } = await db
-      .from('profiles')
-      .update({ display_name: name })
-      .eq('id', data.user.id);
-    if (profileError) console.warn('Profile name could not be updated:', profileError.message);
+  const newStorage = staySignedIn ? localStorage : sessionStorage;
+  if (oldStorage !== newStorage) {
+    const authKey = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
+    const session = oldStorage.getItem(authKey);
+    if (session) newStorage.setItem(authKey, session);
+    oldStorage.removeItem(authKey);
   }
+  localStorage.setItem(REMEMBER_KEY, String(staySignedIn));
 
   showToast('Signed in successfully.');
   await loadAccountIdentity();
@@ -230,20 +247,32 @@ async function requireUser() {
 }
 
 function setupAuthForms() {
+  $$('.password-toggle').forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = document.getElementById(button.dataset.password);
+      if (!input) return;
+      const visible = input.type === 'password';
+      input.type = visible ? 'text' : 'password';
+      button.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+      button.setAttribute('aria-pressed', String(visible));
+      button.title = visible ? 'Hide password' : 'Show password';
+    });
+  });
   $('#signup-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const email = ($('#signup-email')?.value || '').trim();
     const password = $('#signup-password')?.value || '';
-    const fullName = ($('#signup-name')?.value || '').trim();
-    await createAccount(email, password, fullName);
+    const username = ($('#signup-username')?.value || '').trim();
+    const firstName = ($('#signup-first-name')?.value || '').trim();
+    const lastName = ($('#signup-last-name')?.value || '').trim();
+    await createAccount(email, password, username, firstName, lastName);
   });
 
   $('#signin-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const fullName = ($('#signin-name')?.value || '').trim();
     const email = ($('#signin-email')?.value || '').trim();
     const password = $('#signin-password')?.value || '';
-    await signIn(email, password, fullName);
+    await signIn(email, password);
   });
 }
 

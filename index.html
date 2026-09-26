@@ -196,12 +196,19 @@
             <h3 class="text-xl font-bold mb-1">Create Account</h3>
             <p class="text-sm text-slate-400 mb-5">New to SPOYLT? Create your free Citizen profile before posting.</p>
             <form id="signup-form" class="space-y-3">
-              <label for="signup-name" class="sr-only">Full Name</label>
-              <input id="signup-name" type="text" required maxlength="80" autocomplete="name" placeholder="Full Name" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <label for="signup-username" class="sr-only">User Name</label>
+              <input id="signup-username" type="text" required maxlength="40" autocomplete="username" placeholder="User Name" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <label for="signup-first-name" class="sr-only">First Name</label>
+              <input id="signup-first-name" type="text" required maxlength="60" autocomplete="given-name" placeholder="First Name" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <label for="signup-last-name" class="sr-only">Last Name (optional)</label>
+              <input id="signup-last-name" type="text" maxlength="60" autocomplete="family-name" placeholder="Last Name (optional)" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               <label for="signup-email" class="sr-only">Email address</label>
               <input id="signup-email" type="email" required maxlength="254" autocomplete="email" placeholder="you@example.com" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               <label for="signup-password" class="sr-only">Create a password</label>
-              <input id="signup-password" type="password" required minlength="8" autocomplete="new-password" placeholder="Create a password (8+ characters)" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <div class="relative">
+                <input id="signup-password" type="password" required minlength="8" autocomplete="new-password" placeholder="Create a password (8+ characters)" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 pr-14 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <button type="button" class="password-toggle absolute inset-y-0 right-0 px-4 text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-r-xl" data-password="signup-password" aria-label="Show password" aria-pressed="false" title="Show password">👁</button>
+              </div>
               <button type="submit" class="w-full bg-sky-500 hover:bg-sky-400 text-white font-semibold px-5 py-3 rounded-xl transition">Create Free Account</button>
             </form>
             <p class="text-xs text-slate-500 mt-3">We may send one confirmation email to verify your address.</p>
@@ -212,12 +219,14 @@
             <h3 class="text-xl font-bold mb-1">Sign In</h3>
             <p class="text-sm text-slate-400 mb-5">Already have an account? Sign in with your email and password.</p>
             <form id="signin-form" class="space-y-3">
-              <label for="signin-name" class="sr-only">Full Name</label>
-              <input id="signin-name" type="text" required maxlength="80" autocomplete="name" placeholder="Full Name" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               <label for="signin-email" class="sr-only">Email address</label>
-              <input id="signin-email" type="email" required maxlength="254" autocomplete="email" placeholder="you@example.com" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <input id="signin-email" type="email" required maxlength="254" autocomplete="username" placeholder="Email (your sign-in user name)" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               <label for="signin-password" class="sr-only">Password</label>
-              <input id="signin-password" type="password" required autocomplete="current-password" placeholder="Your password" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <div class="relative">
+                <input id="signin-password" type="password" required autocomplete="current-password" placeholder="Your password" class="w-full bg-slate-800/80 border border-slate-600 rounded-xl px-4 py-3 pr-14 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <button type="button" class="password-toggle absolute inset-y-0 right-0 px-4 text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-r-xl" data-password="signin-password" aria-label="Show password" aria-pressed="false" title="Show password">👁</button>
+              </div>
+              <label class="flex items-center gap-2 text-sm text-slate-300"><input id="stay-signed-in" type="checkbox" checked class="accent-sky-500" /> Stay signed in on this device</label>
               <button type="submit" class="w-full border border-sky-500 text-sky-300 hover:bg-sky-500 hover:text-white font-semibold px-5 py-3 rounded-xl transition">Sign In</button>
             </form>
             <p class="text-xs text-slate-500 mt-3">Password sign-in does not send another email.</p>
