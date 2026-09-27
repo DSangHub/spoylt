@@ -4,3 +4,9 @@ git pull origin main
 git add index.html js/app.js
 git commit -m "Add $149/$299/$495 flyer fees by electorate size"
 git push origin main
+cd ~/spoylt
+git status
+git add index.html js/app.js
+git commit -m "Add $149/$299/$495 flyer fees by electorate size"
+git pull --rebase origin main
+git push origin main
