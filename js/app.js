@@ -388,7 +388,7 @@ function setupPoliticalFlyers() {
     if (error || !data?.url) {
       $('#flyer-submit-status').textContent = data?.error || error?.message || 'Checkout could not start.';
       button.disabled = false;
-      button.textContent = 'Pay $495 for this flyer';
+      button.textContent = button.dataset.payLabel;
       return;
     }
     window.location.assign(data.url);
@@ -434,7 +434,7 @@ async function loadMyFlyers() {
     return;
   }
   const { data, error } = await db.from('political_flyers')
-    .select('id,headline,status,payment_status,created_at,committee_id').eq('owner_id', currentUser.id)
+    .select('id,headline,status,payment_status,created_at,committee_id,fee_amount_cents').eq('owner_id', currentUser.id)
     .order('created_at', { ascending: false }).limit(30);
   if (error) {
     box.textContent = 'Your flyers could not load right now.';
@@ -445,8 +445,12 @@ async function loadMyFlyers() {
       '<div class="border border-slate-700 rounded-lg p-3 text-sm"><strong>' + escapeHtml(flyer.headline) +
       '</strong><span class="text-slate-400"> · ' + escapeHtml(flyer.status.replaceAll('_', ' ')) +
       '</span>' + (flyer.status === 'awaiting_payment' && flyer.payment_status === 'unpaid'
-        ? '<button type="button" data-pay-flyer="' + escapeHtml(flyer.id) +
-          '" class="block mt-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg">Pay $495 for this flyer</button>'
+        ? ([14900, 29900, 49500].includes(flyer.fee_amount_cents)
+          ? '<button type="button" data-pay-flyer="' + escapeHtml(flyer.id) +
+            '" data-pay-label="Pay $' + (flyer.fee_amount_cents / 100).toFixed(0) + ' for this flyer"' +
+            ' class="block mt-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg">Pay $' +
+            (flyer.fee_amount_cents / 100).toFixed(0) + ' for this flyer</button>'
+          : '<p class="mt-3 text-amber-300">Fee pending reviewer assignment.</p>')
         : '') + '</div>').join('') : '<p class="text-sm text-slate-400">No flyers saved yet.</p>');
 }
 
