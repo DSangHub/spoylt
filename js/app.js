@@ -792,14 +792,25 @@ function renderVerificationStatus() {
     (verificationRequest?.status === 'verified' ? 'bg-emerald-500/15 text-emerald-300' :
      verificationRequest?.status === 'pending_review' ? 'bg-sky-500/15 text-sky-300' :
      'bg-slate-800 text-slate-400');
+  const today = new Date().toISOString().slice(0, 10);
+  const verified = Boolean(currentUser && verificationRequest?.status === 'verified' &&
+    ['official', 'candidate'].includes(verificationRequest.verification_type) &&
+    (!verificationRequest.expires_at || new Date(verificationRequest.expires_at) > new Date()) &&
+    (!verificationRequest.election_date || verificationRequest.election_date >= today) &&
+    (!verificationRequest.term_end || verificationRequest.term_end >= today));
+  ['#official-showcase', '#my-campaign-profile', '#official-ai-tools'].forEach((selector) =>
+    $(selector)?.classList.toggle('hidden', !verified));
+  $('#official-gate-note')?.classList.toggle('hidden', verified);
 }
 
 async function loadVerificationRequest() {
   verificationRequest = null;
-  if (!currentUser) return renderVerificationStatus();
+  renderVerificationStatus();
+  if (!currentUser) return;
   const { data, error } = await db.from('verification_requests').select('*').eq('user_id', currentUser.id).maybeSingle();
   if (error) {
     console.error(error);
+    renderVerificationStatus();
     return;
   }
   verificationRequest = data;
