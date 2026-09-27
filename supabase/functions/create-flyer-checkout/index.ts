@@ -24,13 +24,16 @@ Deno.serve(async (req: Request) => {
     const { flyer_id: flyerId } = await req.json();
     if (typeof flyerId !== "string" || !/^[0-9a-f-]{36}$/i.test(flyerId)) throw new Error("Invalid flyer.");
     const { data: flyer, error } = await admin.from("political_flyers")
-      .select("id,owner_id,headline,status,payment_status,stripe_checkout_session_id,election_date,fee_amount_cents")
+      .select("id,owner_id,headline,status,payment_status,stripe_checkout_session_id,election_date,fee_amount_cents,fee_geography_id,fee_population,fee_population_year")
       .eq("id", flyerId).eq("owner_id", user.id).maybeSingle();
     if (error || !flyer) throw new Error("Flyer not found.");
     if (flyer.status !== "awaiting_payment" || flyer.payment_status !== "unpaid" || flyer.election_date < new Date().toISOString().slice(0, 10)) {
       throw new Error("This flyer is not ready for payment.");
     }
-    if (![14900, 29900, 49500].includes(flyer.fee_amount_cents)) throw new Error("A reviewer must assign the flyer fee before checkout.");
+    if (![14900, 29900, 49500].includes(flyer.fee_amount_cents) || !flyer.fee_geography_id ||
+        !Number.isSafeInteger(flyer.fee_population) || flyer.fee_population < 1 || !flyer.fee_population_year) {
+      throw new Error("A reviewer must confirm the district population and flyer fee before checkout.");
+    }
 
     const key = Deno.env.get("STRIPE_SECRET_KEY");
     if (!key) throw new Error("Stripe is unavailable.");

@@ -426,6 +426,50 @@ function setupPoliticalFlyers() {
   });
 }
 
+function setupPopulationTable() {
+  const state = $('#population-state');
+  const type = $('#population-type');
+  if (!state || !type) return;
+  state.innerHTML = '<option value="">Choose state</option>' + STATES.map(([code, name]) =>
+    '<option value="' + escapeHtml(code) + '">' + escapeHtml(name) + '</option>').join('');
+  let page = 0;
+  let request = 0;
+  async function load(reset = false) {
+    if (reset) { page = 0; $('#population-rows').innerHTML = ''; }
+    const token = ++request;
+    if (!state.value) {
+      $('#population-status').textContent = 'Choose a state to view population data.';
+      $('#population-more').classList.add('hidden');
+      return;
+    }
+    $('#population-status').textContent = 'Loading population data…';
+    const { data, error } = await db.from('flyer_population_areas')
+      .select('name,population,estimate_year,source_url,area_type')
+      .eq('state_code', state.value).eq('area_type', type.value).eq('estimate_year', 2024)
+      .order('name').range(page * 100, page * 100 + 99);
+    if (token !== request) return;
+    if (error) {
+      $('#population-status').textContent = 'Population data is unavailable right now.';
+      $('#population-more').classList.add('hidden');
+      return;
+    }
+    $('#population-rows').insertAdjacentHTML('beforeend', (data || []).map((area) =>
+      '<tr class="border-t border-slate-700"><td class="py-2 pr-3">' + escapeHtml(area.name) +
+      '</td><td class="py-2 pr-3">' + Number(area.population).toLocaleString() +
+      '</td><td class="py-2 pr-3">$' + (area.area_type === 'congressional' ? '495' :
+        Number(area.population) <= 100000 ? '149' : '299') +
+      '</td><td class="py-2"><a class="text-sky-300 underline" target="_blank" rel="noopener noreferrer" href="' +
+        escapeHtml(area.source_url) + '">Census</a></td></tr>').join(''));
+    $('#population-status').textContent = data?.length ? '2024 Census ACS estimates; a reviewer confirms the office before pricing.' :
+      'No imported population data for this area yet. Pricing stays pending.';
+    $('#population-more').classList.toggle('hidden', (data?.length || 0) < 100);
+    page++;
+  }
+  state.addEventListener('change', () => load(true));
+  type.addEventListener('change', () => load(true));
+  $('#population-more').addEventListener('click', () => load());
+}
+
 async function loadMyFlyers() {
   const box = $('#my-flyers');
   if (!box) return;
@@ -434,7 +478,7 @@ async function loadMyFlyers() {
     return;
   }
   const { data, error } = await db.from('political_flyers')
-    .select('id,headline,status,payment_status,created_at,committee_id,fee_amount_cents').eq('owner_id', currentUser.id)
+    .select('id,headline,status,payment_status,created_at,committee_id,fee_amount_cents,fee_geography_id').eq('owner_id', currentUser.id)
     .order('created_at', { ascending: false }).limit(30);
   if (error) {
     box.textContent = 'Your flyers could not load right now.';
@@ -445,7 +489,7 @@ async function loadMyFlyers() {
       '<div class="border border-slate-700 rounded-lg p-3 text-sm"><strong>' + escapeHtml(flyer.headline) +
       '</strong><span class="text-slate-400"> · ' + escapeHtml(flyer.status.replaceAll('_', ' ')) +
       '</span>' + (flyer.status === 'awaiting_payment' && flyer.payment_status === 'unpaid'
-        ? ([14900, 29900, 49500].includes(flyer.fee_amount_cents)
+        ? (flyer.fee_geography_id && [14900, 29900, 49500].includes(flyer.fee_amount_cents)
           ? '<button type="button" data-pay-flyer="' + escapeHtml(flyer.id) +
             '" data-pay-label="Pay $' + (flyer.fee_amount_cents / 100).toFixed(0) + ' for this flyer"' +
             ' class="block mt-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-4 py-2 rounded-lg">Pay $' +
@@ -989,6 +1033,7 @@ function renderFirewallPanel() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  setupPopulationTable();
   renderCategories();
   setupAuthForms();
   setupScopeControls();

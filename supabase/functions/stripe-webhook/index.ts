@@ -41,12 +41,13 @@ Deno.serve(async (req: Request) => {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.metadata?.kind === "political_flyer" && session.payment_status === "paid") {
         const { data: flyer, error: lookupError } = await admin.from("political_flyers")
-          .select("fee_amount_cents").eq("id", session.metadata.flyer_id)
+          .select("fee_amount_cents,fee_geography_id,fee_population,fee_population_year").eq("id", session.metadata.flyer_id)
           .eq("owner_id", session.metadata.user_id)
           .eq("stripe_checkout_session_id", session.id).maybeSingle();
         if (lookupError) throw lookupError;
         const fee = flyer?.fee_amount_cents;
-        if (![14900, 29900, 49500].includes(fee) ||
+        if (![14900, 29900, 49500].includes(fee) || !flyer?.fee_geography_id ||
+            !Number.isSafeInteger(flyer.fee_population) || !flyer.fee_population_year ||
             session.metadata.fee_amount_cents !== String(fee) ||
             session.mode !== "payment" || session.currency !== "usd" || session.amount_total !== fee ||
             !session.metadata.flyer_id || !session.metadata.user_id) {

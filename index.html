@@ -475,6 +475,17 @@
           </div>
         </form>
       </div>
+      <div class="glass rounded-2xl p-6 mt-8 border border-sky-500/20">
+        <h3 class="text-xl font-bold mb-2">County and district population by state</h3>
+        <p class="text-sm text-slate-400 mb-4">2024 Census ACS five-year population estimates. Reviewed flyer fees: up to 100,000 people $149; larger areas $299; congressional districts $495. A reviewer confirms the office and district before assigning a fee.</p>
+        <div class="flex flex-wrap gap-3 mb-4">
+          <select id="population-state" aria-label="Population state" class="bg-slate-800 border border-slate-600 rounded-lg p-2"><option value="">Choose state</option></select>
+          <select id="population-type" aria-label="Population area type" class="bg-slate-800 border border-slate-600 rounded-lg p-2"><option value="county">County</option><option value="congressional">Congressional district</option><option value="state_senate">State senate district</option><option value="state_house">State house district</option><option value="school_elementary">Elementary school district</option><option value="school_secondary">Secondary school district</option><option value="school_unified">Unified school district</option></select>
+        </div>
+        <p id="population-status" class="text-sm text-slate-400 mb-2" role="status">Choose a state to view population data.</p>
+        <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead><tr><th class="py-2">County or district</th><th class="py-2">Population</th><th class="py-2">Flyer fee</th><th class="py-2">Source</th></tr></thead><tbody id="population-rows"></tbody></table></div>
+        <button id="population-more" type="button" class="hidden mt-4 text-sky-300 underline">Show more</button>
+      </div>
       <p id="official-gate-note" class="mt-6 text-sm text-amber-300" role="status">Official and candidate tools become available after identity and office or filing verification.</p>
       <div id="my-campaign-profile" class="hidden glass rounded-2xl p-6 mt-8 border border-amber-500/20">
         <h3 class="text-xl font-bold mb-2">Candidate profile · digital flyer</h3>
