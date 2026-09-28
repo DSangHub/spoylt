@@ -1006,6 +1006,9 @@ async function loadVerificationRequest() {
 }
 
 function setupVerification() {
+  $$('.campaign-advertise-link').forEach((link) => link.addEventListener('click', () => {
+    if (!verificationRequest && $('#verification-type')) $('#verification-type').value = 'candidate';
+  }));
   $('#verification-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const user = await requireUser();
