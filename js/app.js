@@ -65,7 +65,25 @@ let verificationRequest = null;
 let currentPlan = 'citizen';
 let propositions = [];
 let ballotMeasures = [];
-let userLocation = { city: 'your area', county: '', stateCode: '', region: '', lat: null, lng: null };
+let userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
+
+function showZipSample(postalCode) {
+  const visible = postalCode === '95252';
+  $('#zip-sample-flyer')?.classList.toggle('hidden', !visible);
+  const layout = $('#hero-layout');
+  layout?.classList.toggle('max-w-5xl', !visible);
+  layout?.classList.toggle('max-w-6xl', visible);
+  layout?.classList.toggle('lg:grid', visible);
+  layout?.classList.toggle('lg:grid-cols-[180px_minmax(0,1fr)]', visible);
+  layout?.classList.toggle('lg:gap-8', visible);
+  layout?.classList.toggle('lg:items-center', visible);
+}
+
+$('#zip-sample-form')?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const zip = $('#zip-sample-input')?.value.trim() || '';
+  showZipSample(/^\d{5}$/.test(zip) ? zip : '');
+});
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -293,7 +311,7 @@ async function detectLocation() {
     userLocation.lng = pos.coords.longitude;
     const response = await fetch(
       'https://nominatim.openstreetmap.org/reverse?format=json&lat=' +
-      userLocation.lat + '&lon=' + userLocation.lng + '&zoom=10',
+      userLocation.lat + '&lon=' + userLocation.lng + '&zoom=18&addressdetails=1',
       { headers: { 'Accept-Language': 'en' } }
     );
     const address = (await response.json()).address || {};
@@ -302,13 +320,17 @@ async function detectLocation() {
     userLocation.stateCode = (address['ISO3166-2-lvl4'] || '').split('-')[1] ||
       STATES.find(([, name]) => name.toLowerCase() === (address.state || '').toLowerCase())?.[0] || '';
     userLocation.region = address.state || '';
+    userLocation.postalCode = /^\d{5}(?:-\d{4})?$/.test(address.postcode || '')
+      ? address.postcode.slice(0, 5) : '';
+    showZipSample(userLocation.stateCode === 'CA' ? userLocation.postalCode : '');
     const display = [userLocation.city, userLocation.region].filter(Boolean).join(', ');
     if (label) label.textContent = display;
     if (hero) hero.textContent = '📍 Showing issues near ' + display;
     updatePostingLocation();
     loadPoliticalFlyers();
   } catch {
-    userLocation = { city: 'your area', county: '', stateCode: '', region: '', lat: null, lng: null };
+    userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
+    showZipSample('');
     if (label) label.textContent = 'Location unavailable';
     if (hero) hero.textContent = '📍 Enable location to see nearby propositions';
     updatePostingLocation();
