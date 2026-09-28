@@ -72,12 +72,8 @@ function showZipSample(postalCode) {
   const visible = postalCode === '95252';
   $('#zip-sample-flyer')?.classList.toggle('hidden', !visible);
   const layout = $('#hero-layout');
-  layout?.classList.toggle('max-w-5xl', !visible);
-  layout?.classList.toggle('max-w-6xl', visible);
-  layout?.classList.toggle('lg:grid', visible);
-  layout?.classList.toggle('lg:grid-cols-[180px_minmax(0,1fr)]', visible);
-  layout?.classList.toggle('lg:gap-8', visible);
-  layout?.classList.toggle('lg:items-center', visible);
+  layout?.classList.toggle('lg:grid-cols-[minmax(0,1fr)_240px]', !visible);
+  layout?.classList.toggle('lg:grid-cols-[180px_minmax(0,1fr)_240px]', visible);
 }
 
 $('#zip-sample-form')?.addEventListener('submit', (event) => {
