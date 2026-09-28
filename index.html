@@ -387,6 +387,16 @@
       <h2 class="text-2xl font-bold mb-2">Political flyers in your area</h2>
       <p id="flyer-location-note" class="text-sm text-slate-400 mb-5">Enable location to see approved local political flyers. Your current location does not establish your voting address.</p>
       <div id="flyer-list" class="grid md:grid-cols-2 gap-4"></div>
+      <div class="mt-10">
+        <h3 class="text-xl font-bold mb-2">Candidate videos near you</h3>
+        <form id="video-zip-form" class="flex flex-wrap items-center gap-2 mb-3">
+          <label for="video-zip" class="text-sm text-slate-300">Your viewing ZIP</label>
+          <input id="video-zip" type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" autocomplete="postal-code" placeholder="Enter 5 digits" class="w-32 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white" />
+          <button type="submit" class="border border-slate-600 rounded-lg px-3 py-2">Find videos</button>
+        </form>
+        <p id="video-location-note" class="text-sm text-slate-400 mb-4" role="status">Enter your ZIP or enable location to see reviewed candidate videos. ZIP is a viewing preference, not proof of voting residence.</p>
+        <div id="video-list" class="grid md:grid-cols-2 gap-4"></div>
+      </div>
 
     </div>
   </section>
@@ -517,6 +527,21 @@
         </form>
         <p id="flyer-submit-status" class="text-sm text-slate-400 mt-4" role="status"></p>
         <div id="my-flyers" class="mt-5 space-y-3"></div>
+        <div class="border-t border-slate-700 mt-8 pt-6">
+          <h3 class="text-xl font-bold mb-2">Submit a candidate video</h3>
+          <p class="text-sm text-slate-400 mb-4">Verified candidates may supply an MP4 for review. SPOYLT verifies the candidate, sponsor, content, and requested ZIP before placement. Submission does not publish the video.</p>
+          <form id="candidate-video-form" class="grid sm:grid-cols-2 gap-3">
+            <input id="video-title" required minlength="5" maxlength="140" placeholder="Video title" aria-label="Video title" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 sm:col-span-2" />
+            <input id="video-sponsor" required minlength="3" maxlength="180" placeholder="Paid for by (legal sponsor)" aria-label="Legal sponsor" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2" />
+            <input id="video-committee" maxlength="40" placeholder="Campaign committee ID, if applicable" aria-label="Campaign committee ID" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2" />
+            <input id="video-target-zip" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="Placement ZIP (e.g. 95252)" aria-label="Placement ZIP" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2" />
+            <label class="text-sm text-slate-300">Election date <input id="video-election" required type="date" class="block mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2" /></label>
+            <label class="text-sm text-slate-300 sm:col-span-2">MP4 video, 50 MB maximum <input id="video-file" required type="file" accept="video/mp4,.mp4" class="block mt-1 w-full" /></label>
+            <button type="submit" class="bg-amber-500 text-slate-950 rounded-lg px-4 py-2 font-semibold sm:col-span-2">Send video for review</button>
+          </form>
+          <p id="video-submit-status" role="status" class="text-sm text-slate-400 mt-3"></p>
+          <div id="my-videos" class="mt-4 space-y-2"></div>
+        </div>
       </div>
       <div id="official-ai-tools" class="hidden glass rounded-3xl p-6 sm:p-8 mt-8 border border-violet-500/30">
         <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">

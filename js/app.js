@@ -66,6 +66,7 @@ let currentPlan = 'citizen';
 let propositions = [];
 let ballotMeasures = [];
 let userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
+let viewingZip = '';
 
 function showZipSample(postalCode) {
   const visible = postalCode === '95252';
@@ -323,6 +324,10 @@ async function detectLocation() {
     userLocation.postalCode = /^\d{5}(?:-\d{4})?$/.test(address.postcode || '')
       ? address.postcode.slice(0, 5) : '';
     showZipSample(userLocation.stateCode === 'CA' ? userLocation.postalCode : '');
+    if (!$('#video-zip')?.value.trim()) {
+      viewingZip = userLocation.postalCode;
+      loadCandidateVideos();
+    }
     const display = [userLocation.city, userLocation.region].filter(Boolean).join(', ');
     if (label) label.textContent = display;
     if (hero) hero.textContent = '📍 Showing issues near ' + display;
@@ -331,6 +336,10 @@ async function detectLocation() {
   } catch {
     userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
     showZipSample('');
+    if (!$('#video-zip')?.value.trim()) {
+      viewingZip = '';
+      loadCandidateVideos();
+    }
     if (label) label.textContent = 'Location unavailable';
     if (hero) hero.textContent = '📍 Enable location to see nearby propositions';
     updatePostingLocation();
@@ -340,6 +349,108 @@ async function detectLocation() {
 
 function normalizeArea(value) {
   return String(value || '').replace(/\s+(County|City)$/i, '').trim().toLowerCase();
+}
+
+async function loadCandidateVideos() {
+  const list = $('#video-list');
+  const note = $('#video-location-note');
+  if (!list || !note) return;
+  const requestedZip = viewingZip;
+  list.replaceChildren();
+  if (!/^\d{5}$/.test(requestedZip)) {
+    note.textContent = 'Enter your ZIP or enable location to see reviewed candidate videos. ZIP is a viewing preference, not proof of voting residence.';
+    return;
+  }
+  note.textContent = 'Reviewed candidate videos requested for ZIP ' + requestedZip + '. Your ZIP is not proof of voting residence.';
+  const { data, error } = await db.from('candidate_videos')
+    .select('id,title,paid_for_by,storage_path,election_date')
+    .eq('status', 'approved').eq('target_zip', requestedZip)
+    .gte('election_date', new Date().toISOString().slice(0, 10))
+    .order('created_at', { ascending: false }).limit(20);
+  if (requestedZip !== viewingZip) return;
+  if (error) { note.textContent = 'Candidate videos are unavailable right now.'; return; }
+  for (const video of data || []) {
+    const { data: link, error: linkError } = await db.storage.from('candidate-videos').createSignedUrl(video.storage_path, 300);
+    if (requestedZip !== viewingZip) return;
+    if (linkError || !link?.signedUrl) continue;
+    const article = document.createElement('article');
+    article.className = 'glass rounded-xl p-4 border border-amber-500/30';
+    const heading = document.createElement('h4');
+    heading.className = 'font-semibold mb-2';
+    heading.textContent = video.title;
+    const player = document.createElement('video');
+    player.controls = true;
+    player.preload = 'none';
+    player.className = 'w-full rounded-lg';
+    player.src = link.signedUrl;
+    const disclosure = document.createElement('p');
+    disclosure.className = 'text-xs text-slate-300 mt-2';
+    disclosure.textContent = 'Political video · Paid for by ' + video.paid_for_by;
+    article.append(heading, player, disclosure);
+    list.append(article);
+  }
+  if (!list.childElementCount) note.textContent += ' No approved videos are available.';
+}
+
+async function loadMyVideos() {
+  const box = $('#my-videos');
+  if (!box) return;
+  box.replaceChildren();
+  if (!currentUser) return;
+  const { data, error } = await db.from('candidate_videos')
+    .select('title,status,target_zip').eq('owner_id', currentUser.id)
+    .order('created_at', { ascending: false }).limit(30);
+  box.textContent = error ? 'Your submissions could not load.' :
+    (data || []).length ? 'Your video submissions:' : 'No videos submitted yet.';
+  for (const item of data || []) {
+    const row = document.createElement('p');
+    row.className = 'text-sm text-slate-300';
+    row.textContent = item.title + ' · ZIP ' + item.target_zip + ' · ' + item.status.replaceAll('_', ' ');
+    box.append(row);
+  }
+}
+
+function setupCandidateVideos() {
+  $('#video-zip-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = $('#video-zip').value.trim();
+    viewingZip = /^\d{5}$/.test(value) ? value : '';
+    loadCandidateVideos();
+  });
+  $('#candidate-video-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const status = $('#video-submit-status');
+    const user = await requireUser();
+    if (!user) return;
+    const file = $('#video-file').files[0];
+    const zip = $('#video-target-zip').value.trim();
+    const election = $('#video-election').value;
+    if (verificationRequest?.status !== 'verified' || verificationRequest.verification_type !== 'candidate' ||
+      !file || file.type !== 'video/mp4' || !file.name.toLowerCase().endsWith('.mp4') ||
+      file.size > 50 * 1024 * 1024 || file.size === 0 || !/^\d{5}$/.test(zip) ||
+      election < new Date().toISOString().slice(0, 10)) {
+      status.textContent = 'A current candidate verification, future election date, five-digit ZIP, and MP4 under 50 MB are required.';
+      return;
+    }
+    const committee = $('#video-committee').value.trim();
+    if (verificationRequest.filing_id && committee !== verificationRequest.filing_id) {
+      status.textContent = 'The committee ID must match your verified campaign filing.';
+      return;
+    }
+    const id = crypto.randomUUID();
+    const path = user.id + '/' + id + '.mp4';
+    status.textContent = 'Uploading privately…';
+    const uploaded = await db.storage.from('candidate-videos').upload(path, file, { contentType: 'video/mp4', upsert: false });
+    if (uploaded.error) { status.textContent = 'Private upload failed. Check your verification and video size.'; return; }
+    const { error } = await db.from('candidate_videos').insert({
+      id, owner_id: user.id, storage_path: path, title: $('#video-title').value.trim(),
+      paid_for_by: $('#video-sponsor').value.trim(), committee_id: committee || null,
+      target_zip: zip, election_date: election,
+    });
+    status.textContent = error ? 'Video uploaded privately, but submission failed. Contact support to complete review.' :
+      'Submitted for SPOYLT review. It is hidden until verification and placement approval.';
+    if (!error) { $('#candidate-video-form').reset(); loadMyVideos(); }
+  });
 }
 
 async function loadPoliticalFlyers() {
@@ -1062,6 +1173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupForm();
   setupVerification();
   setupPoliticalFlyers();
+  setupCandidateVideos();
   setupStripeButtons();
   setupAiModerator();
   renderFirewallPanel();
@@ -1072,11 +1184,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateAuthUI();
   await loadVerificationRequest();
   await loadMyFlyers();
+  await loadMyVideos();
   db.auth.onAuthStateChange((_event, nextSession) => {
     currentUser = nextSession?.user || null;
     updateAuthUI();
     loadVerificationRequest();
     loadMyFlyers();
+    loadMyVideos();
   });
 
   if (new URLSearchParams(window.location.search).get('identity') === 'return') {
