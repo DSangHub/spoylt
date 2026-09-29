@@ -67,13 +67,62 @@ let propositions = [];
 let ballotMeasures = [];
 let userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
 let viewingZip = '';
+let showSampleFlyer = false;
+let approvedHeroFlyers = [];
+let flyerLoadId = 0;
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
+function renderHeroFlyers() {
+  const aside = $('#location-flyers');
+  const track = $('#location-flyer-track');
+  const pause = $('#flyer-pause');
+  if (!aside || !track || !pause) return;
+  const cards = [];
+  if (showSampleFlyer) {
+    const sample = $('#zip-sample-template')?.content.firstElementChild?.cloneNode(true);
+    if (sample) cards.push(sample);
+  }
+  for (const flyer of approvedHeroFlyers) {
+    const card = document.createElement('article');
+    card.className = 'flyer-rotation-item flex flex-col overflow-y-auto rounded-xl border border-amber-500/40 bg-slate-900 p-4 text-left shadow-2xl';
+    card.innerHTML = '<p class="text-[10px] font-bold tracking-wide text-amber-300">PAID POLITICAL ADVERTISEMENT · 4″ × 5″</p>' +
+      '<h2 class="mt-4 text-xl font-black leading-tight text-white">' + escapeHtml(flyer.headline) + '</h2>' +
+      '<p class="mt-4 whitespace-pre-wrap text-xs leading-relaxed text-slate-200">' + escapeHtml(flyer.body) + '</p>' +
+      '<p class="mt-auto pt-4 text-[10px] leading-tight text-slate-300">Paid for by ' + escapeHtml(flyer.paid_for_by) +
+      '<br>Election ' + escapeHtml(flyer.election_date) + '</p>';
+    cards.push(card);
+  }
+  track.replaceChildren(...cards);
+  const rotating = cards.length > 1;
+  if (rotating) {
+    for (const card of cards) {
+      const copy = card.cloneNode(true);
+      copy.setAttribute('aria-hidden', 'true');
+      track.append(copy);
+    }
+    track.style.setProperty('--rotation-duration', `${cards.length * 12}s`);
+  }
+  track.classList.toggle('is-rotating', rotating);
+  aside.classList.toggle('hidden', !cards.length);
+  $('#hero-layout')?.classList.toggle('has-zip-sample', !!cards.length);
+  pause.classList.toggle('hidden', !rotating);
+  pause.setAttribute('aria-pressed', 'false');
+  pause.textContent = 'Pause flyers';
+  aside.querySelector('.flyer-rotation')?.classList.remove('is-paused');
+  $('#flyer-rotation-note').textContent = showSampleFlyer ? 'Sample preview only · not an approved or paid ad' :
+    rotating ? 'Hover to pause · approved ads for your area' : 'Approved ad for your area';
+}
+
+$('#flyer-pause')?.addEventListener('click', (event) => {
+  const paused = $('#location-flyers .flyer-rotation')?.classList.toggle('is-paused');
+  event.currentTarget.setAttribute('aria-pressed', String(!!paused));
+  event.currentTarget.textContent = paused ? 'Play flyers' : 'Pause flyers';
+});
+
 function showZipSample(postalCode) {
-  const visible = postalCode === '95252';
-  $('#zip-sample-flyer')?.classList.toggle('hidden', !visible);
-  $('#hero-layout')?.classList.toggle('has-zip-sample', visible);
+  showSampleFlyer = postalCode === '95252';
+  renderHeroFlyers();
 }
 
 $('#zip-sample-form')?.addEventListener('submit', (event) => {
@@ -469,10 +518,13 @@ function setupCandidateVideos() {
 }
 
 async function loadPoliticalFlyers() {
+  const loadId = ++flyerLoadId;
   const list = $('#flyer-list');
   const note = $('#flyer-location-note');
   if (!list) return;
   if (!userLocation.stateCode) {
+    approvedHeroFlyers = [];
+    renderHeroFlyers();
     list.innerHTML = '';
     note.textContent = 'Enable location to see approved local political flyers. Your current location does not establish your voting address.';
     return;
@@ -483,7 +535,10 @@ async function loadPoliticalFlyers() {
     .eq('status', 'approved').eq('target_state', userLocation.stateCode)
     .gte('election_date', new Date().toISOString().slice(0, 10))
     .order('created_at', { ascending: false }).limit(100);
+  if (loadId !== flyerLoadId) return;
   if (error) {
+    approvedHeroFlyers = [];
+    renderHeroFlyers();
     note.textContent = 'Political flyers are unavailable right now.';
     list.innerHTML = '';
     return;
@@ -493,6 +548,8 @@ async function loadPoliticalFlyers() {
     (normalizeArea(flyer.target_county) === normalizeArea(userLocation.county) &&
       (flyer.target_scope === 'county' || normalizeArea(flyer.target_city) === normalizeArea(userLocation.city)))
   );
+  approvedHeroFlyers = matches;
+  renderHeroFlyers();
   list.innerHTML = matches.map((flyer) =>
     '<article class="glass rounded-xl p-5 border border-amber-500/30" style="width:min(100%,2.5in);aspect-ratio:5/8;overflow-y:auto">' +
     '<p class="text-xs font-semibold text-amber-300 mb-3">Paid political advertisement</p>' +
