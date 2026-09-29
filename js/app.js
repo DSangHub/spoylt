@@ -67,6 +67,8 @@ let propositions = [];
 let ballotMeasures = [];
 let userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
 let viewingZip = '';
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
 
 function showZipSample(postalCode) {
   const visible = postalCode === '95252';
@@ -81,9 +83,6 @@ $('#zip-sample-form')?.addEventListener('submit', (event) => {
   const zip = $('#zip-sample-input')?.value.trim() || '';
   showZipSample(/^\d{5}$/.test(zip) ? zip : '');
 });
-
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
 
 function showToast(message, duration = 4200) {
   const toast = $('#toast');
