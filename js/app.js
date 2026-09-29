@@ -292,26 +292,41 @@ function setupAuthForms() {
 }
 
 async function detectLocation() {
+  const button = $('#geo-btn');
   const label = $('#location-label');
   const hero = $('#hero-location');
-  const form = $('#form-location');
+  if (button?.disabled) return;
+  if (button) button.disabled = true;
   if (label) label.textContent = 'Locating…';
-  if (!navigator.geolocation) return;
+  if (hero) hero.textContent = '📍 Requesting your location from the browser…';
 
   try {
+    if (!navigator.geolocation) throw new Error('Location requires browser support and a secure HTTPS connection.');
     const pos = await new Promise((resolve, reject) =>
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: false, timeout: 10000, maximumAge: 300000,
       })
     );
+    if (label) label.textContent = 'Finding area…';
+    if (hero) hero.textContent = '📍 Location received. Looking up your area…';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try {
+      response = await fetch(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=' +
+        encodeURIComponent(pos.coords.latitude) + '&lon=' + encodeURIComponent(pos.coords.longitude) +
+        '&zoom=18&addressdetails=1',
+        { headers: { 'Accept-Language': 'en' }, signal: controller.signal }
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!response.ok) throw new Error('Your location was found, but the area lookup is unavailable. Please try again.');
+    const address = (await response.json()).address || {};
+    if (!address.state) throw new Error('Your location was found, but its area could not be identified. Please try again.');
     userLocation.lat = pos.coords.latitude;
     userLocation.lng = pos.coords.longitude;
-    const response = await fetch(
-      'https://nominatim.openstreetmap.org/reverse?format=json&lat=' +
-      userLocation.lat + '&lon=' + userLocation.lng + '&zoom=18&addressdetails=1',
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    const address = (await response.json()).address || {};
     userLocation.city = address.city || address.town || address.village || address.county || 'Your area';
     userLocation.county = (address.county || '').replace(/ County$/i, '').trim();
     userLocation.stateCode = (address['ISO3166-2-lvl4'] || '').split('-')[1] ||
@@ -329,17 +344,24 @@ async function detectLocation() {
     if (hero) hero.textContent = '📍 Showing issues near ' + display;
     updatePostingLocation();
     loadPoliticalFlyers();
-  } catch {
+  } catch (error) {
     userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
     showZipSample('');
     if (!$('#video-zip')?.value.trim()) {
       viewingZip = '';
       loadCandidateVideos();
     }
-    if (label) label.textContent = 'Location unavailable';
-    if (hero) hero.textContent = '📍 Enable location to see nearby propositions';
+    const message = error?.code === 1 ? 'Location permission is blocked. Allow it in your browser settings and try again.' :
+      error?.code === 2 ? 'Your device could not determine your location. Please try again.' :
+      error?.code === 3 ? 'Location timed out. Please try again.' :
+      error?.name === 'AbortError' ? 'Area lookup timed out. Please try again.' :
+      error?.message || 'Location unavailable. Please try again.';
+    if (label) label.textContent = 'Detect location';
+    if (hero) hero.textContent = '📍 ' + message;
     updatePostingLocation();
     loadPoliticalFlyers();
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -1209,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadMyFlyers();
   }
 
-  await Promise.all([loadPropositions(), detectLocation()]);
+  await Promise.all([loadPropositions(), loadPoliticalFlyers(), loadCandidateVideos()]);
   db.channel('spoylt-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'propositions' }, loadPropositions)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'interactions' }, loadPropositions)
