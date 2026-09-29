@@ -73,9 +73,7 @@ const $$ = (s) => document.querySelectorAll(s);
 function showZipSample(postalCode) {
   const visible = postalCode === '95252';
   $('#zip-sample-flyer')?.classList.toggle('hidden', !visible);
-  const layout = $('#hero-layout');
-  layout?.classList.toggle('lg:grid-cols-[minmax(0,1fr)_240px]', !visible);
-  layout?.classList.toggle('lg:grid-cols-[180px_minmax(0,1fr)_240px]', visible);
+  $('#hero-layout')?.classList.toggle('has-zip-sample', visible);
 }
 
 $('#zip-sample-form')?.addEventListener('submit', (event) => {
