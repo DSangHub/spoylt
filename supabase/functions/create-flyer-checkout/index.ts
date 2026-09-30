@@ -6,6 +6,7 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+const flyerSizeDescriptions: Record<string, string> = { "2x4": "2 by 4", "3x5": "3 by 5", "4x5": "4 by 5" };
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -24,7 +25,7 @@ Deno.serve(async (req: Request) => {
     const { flyer_id: flyerId } = await req.json();
     if (typeof flyerId !== "string" || !/^[0-9a-f-]{36}$/i.test(flyerId)) throw new Error("Invalid flyer.");
     const { data: flyer, error } = await admin.from("political_flyers")
-      .select("id,owner_id,headline,status,payment_status,stripe_checkout_session_id,election_date,fee_amount_cents,fee_geography_id,fee_population,fee_population_year")
+      .select("id,owner_id,headline,status,payment_status,stripe_checkout_session_id,election_date,fee_amount_cents,fee_geography_id,fee_population,fee_population_year,flyer_size")
       .eq("id", flyerId).eq("owner_id", user.id).maybeSingle();
     if (error || !flyer) throw new Error("Flyer not found.");
     if (flyer.status !== "awaiting_payment" || flyer.payment_status !== "unpaid" || flyer.election_date < new Date().toISOString().slice(0, 10)) {
@@ -57,7 +58,7 @@ Deno.serve(async (req: Request) => {
       client_reference_id: flyer.id,
       line_items: [{ quantity: 1, price_data: {
         currency: "usd", unit_amount: flyer.fee_amount_cents,
-        product_data: { name: "SPOYLT political flyer placement", description: "One reviewed digital flyer, 2.5 by 4 proportion." },
+        product_data: { name: "SPOYLT political flyer placement", description: "One reviewed digital flyer, " + (flyerSizeDescriptions[flyer.flyer_size] || "reviewed") + " proportion." },
       } }],
       metadata: { kind: "political_flyer", flyer_id: flyer.id, user_id: user.id, fee_amount_cents: String(flyer.fee_amount_cents) },
       payment_intent_data: { metadata: { kind: "political_flyer", flyer_id: flyer.id, fee_amount_cents: String(flyer.fee_amount_cents) } },

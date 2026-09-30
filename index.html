@@ -569,9 +569,14 @@
       <div id="my-campaign-profile" class="hidden glass rounded-2xl p-6 mt-8 border border-amber-500/20">
         <h3 class="text-xl font-bold mb-2">Candidate profile · digital flyer</h3>
         <p class="text-sm text-slate-400 mb-5">Save a flyer to your account, then complete identity and campaign ID verification above. A reviewer assigns the placement fee before payment. The flyer displays only after Stripe confirms payment.</p>
-        <p class="text-sm text-amber-300 mb-4">Digital flyer format: 2½″ × 4″ proportion · $149 small district · $299 countywide · $495 congressional, once per flyer.</p>
+        <p class="text-sm text-amber-300 mb-4">Choose 2″ × 4″ or 3″ × 5″. Both sizes use area pricing: $149 small district · $299 larger area · $495 congressional, once per flyer. SPOYLT confirms the fee before payment.</p>
         <form id="flyer-form" class="grid sm:grid-cols-2 gap-4">
-          <input id="flyer-headline" required maxlength="140" minlength="5" placeholder="Flyer headline" aria-label="Flyer headline" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white sm:col-span-2" />
+          <label class="text-sm text-slate-300">Ad format<select id="flyer-design" class="block mt-2 w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3"><option value="template">Use SPOYLT template</option><option value="upload">Upload my own flyer</option></select></label>
+          <label class="text-sm text-slate-300">Flyer size<select id="flyer-size" class="block mt-2 w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3"><option value="2x4">2″ × 4″</option><option value="3x5">3″ × 5″</option></select></label>
+          <input id="flyer-candidate-name" required maxlength="60" minlength="2" placeholder="Candidate name" aria-label="Candidate name" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          <input id="flyer-office" required maxlength="60" minlength="2" placeholder="Running for (office)" aria-label="Running for" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          <input id="flyer-district" required maxlength="80" placeholder="District or zone (or At large)" aria-label="District or zone" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white sm:col-span-2" />
+          <label id="flyer-upload-label" class="hidden text-sm text-slate-300 sm:col-span-2">Your flyer artwork — PNG, JPEG or WebP, up to 10 MB<input id="flyer-artwork" type="file" accept="image/png,image/jpeg,image/webp" class="block mt-2 w-full" /><span class="block mt-1 text-xs text-slate-400">Use the selected size's proportions. Include your legal disclaimer in the artwork; sponsor details below are also shown with your ad.</span></label>
           <textarea id="flyer-body" required maxlength="1200" minlength="10" placeholder="Campaign message" aria-label="Campaign message" rows="4" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white sm:col-span-2"></textarea>
           <input id="flyer-sponsor" required maxlength="180" minlength="3" placeholder="Paid for by (legal sponsor name)" aria-label="Paid for by" class="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white sm:col-span-2" />
           <input id="flyer-committee-id" maxlength="40" placeholder="California campaign committee ID (FPPC ID)" aria-label="California campaign committee ID" class="hidden bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
@@ -580,7 +585,9 @@
           <input id="flyer-county" maxlength="100" placeholder="County (for county or city ads)" aria-label="Target county" class="hidden bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
           <input id="flyer-city" maxlength="100" placeholder="City (for city ads)" aria-label="Target city" class="hidden bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
           <label class="text-sm text-slate-300">Election date <input id="flyer-election" type="date" required class="block mt-2 w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" /></label>
-          <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold py-3 rounded-xl">Save flyer to my profile</button>
+          <label class="text-sm text-slate-300">Requested placement price<select id="flyer-requested-price" class="block mt-2 w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3"><option value="14900">$149 — small district, up to 100,000 people</option><option value="29900">$299 — larger area</option><option value="49500">$495 — congressional district</option></select></label>
+          <div class="sm:col-span-2"><h4 class="font-semibold mb-3">Your flyer preview</h4><div id="flyer-template-preview" class="mx-auto max-w-[300px] rounded-xl border border-sky-400/40 bg-slate-950 p-4 text-left overflow-y-auto" style="aspect-ratio:1/2"></div><p class="mt-2 text-center text-xs text-slate-400">Private draft · review and confirmed payment required for placement</p></div>
+          <button type="submit" class="sm:col-span-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold py-3 rounded-xl">Save flyer &amp; request price review</button>
         </form>
         <p id="flyer-submit-status" class="text-sm text-slate-400 mt-4" role="status"></p>
         <div id="my-flyers" class="mt-5 space-y-3"></div>
@@ -720,6 +727,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/firewall.js"></script>
-  <script src="js/app.js?v=20260929-4"></script>
+  <script src="js/app.js?v=20260930-1"></script>
 </body>
 </html>

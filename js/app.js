@@ -70,6 +70,7 @@ let viewingZip = '';
 let showSampleFlyer = false;
 let approvedHeroFlyers = [];
 let flyerLoadId = 0;
+let flyerArtworkPreviewUrl = '';
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
@@ -84,13 +85,13 @@ function renderHeroFlyers() {
     if (sample) cards.push(sample);
   }
   for (const flyer of approvedHeroFlyers) {
-    const card = document.createElement('article');
-    card.className = 'flyer-rotation-item flex flex-col overflow-y-auto rounded-xl border border-amber-500/40 bg-slate-900 p-4 text-left shadow-2xl';
-    card.innerHTML = '<p class="text-[10px] font-bold tracking-wide text-amber-300">PAID POLITICAL ADVERTISEMENT · 4″ × 5″</p>' +
-      '<h2 class="mt-4 text-xl font-black leading-tight text-white">' + escapeHtml(flyer.headline) + '</h2>' +
-      '<p class="mt-4 whitespace-pre-wrap text-xs leading-relaxed text-slate-200">' + escapeHtml(flyer.body) + '</p>' +
-      '<p class="mt-auto pt-4 text-[10px] leading-tight text-slate-300">Paid for by ' + escapeHtml(flyer.paid_for_by) +
-      '<br>Election ' + escapeHtml(flyer.election_date) + '</p>';
+    const card = document.createElement('div');
+    card.className = 'flyer-rotation-item flex items-center justify-center';
+    const ad = makeCampaignFlyer(flyer);
+    ad.style.height = '100%';
+    ad.style.width = 'auto';
+    ad.style.maxWidth = '100%';
+    card.append(ad);
     cards.push(card);
   }
   track.replaceChildren(...cards);
@@ -146,6 +147,73 @@ function escapeHtml(value) {
   const div = document.createElement('div');
   div.textContent = String(value ?? '');
   return div.innerHTML;
+}
+
+function flyerSizeLabel(size) {
+  return ({'2x4':'2″ × 4″','3x5':'3″ × 5″','4x5':'4″ × 5″'})[size] || '4″ × 5″';
+}
+
+function makeCampaignFlyer(flyer, preview = false) {
+  const card = document.createElement('article');
+  card.className = 'flex flex-col overflow-y-auto rounded-xl border border-sky-400/40 bg-slate-950 p-4 text-left';
+  card.style.aspectRatio = ({'2x4':'1 / 2','3x5':'3 / 5','4x5':'4 / 5'})[flyer.flyer_size] || '4 / 5';
+  card.style.width = '100%';
+  card.innerHTML = '<p class="text-[10px] font-bold tracking-wide text-amber-300">' +
+    (preview ? 'PRIVATE DRAFT' : 'PAID POLITICAL ADVERTISEMENT') + ' · ' + flyerSizeLabel(flyer.flyer_size) + '</p>';
+  if (flyer.design_type === 'upload') {
+    if (flyer.artwork_url) {
+      const image = document.createElement('img');
+      image.src = flyer.artwork_url;
+      image.alt = 'Campaign flyer for ' + (flyer.candidate_name || flyer.headline);
+      image.className = 'mt-3 w-full object-contain';
+      card.append(image);
+    } else {
+      const missing = document.createElement('p');
+      missing.className = 'my-4 text-sm text-slate-400';
+      missing.textContent = preview ? 'Choose your flyer artwork to preview it here.' : 'Artwork unavailable. Campaign details below.';
+      card.append(missing);
+    }
+  }
+  card.insertAdjacentHTML('beforeend', '<h3 class="mt-3 text-xl font-black leading-tight text-white">' +
+    escapeHtml(flyer.candidate_name || flyer.headline || 'Your name') + '</h3>' +
+    (flyer.office_title ? '<p class="mt-2 text-sm font-bold text-sky-300">Running for ' + escapeHtml(flyer.office_title) + '</p>' : '') +
+    (flyer.district_zone ? '<p class="mt-1 text-xs text-sky-200">' + escapeHtml(flyer.district_zone) + '</p>' : '') +
+    '<p class="mt-4 whitespace-pre-wrap text-xs leading-relaxed text-slate-200">' + escapeHtml(flyer.body || 'Your message to voters') + '</p>' +
+    '<p class="mt-auto pt-4 text-[10px] leading-tight text-slate-300">Paid for by ' + escapeHtml(flyer.paid_for_by || '[legal sponsor name]') +
+    (flyer.election_date ? '<br>Election ' + escapeHtml(flyer.election_date) : '') + '</p>');
+  return card;
+}
+
+function updateFlyerPreview() {
+  const upload = $('#flyer-design')?.value === 'upload';
+  $('#flyer-upload-label')?.classList.toggle('hidden', !upload);
+  if ($('#flyer-artwork')) $('#flyer-artwork').required = upload;
+  const preview = $('#flyer-template-preview');
+  if (!preview) return;
+  preview.style.aspectRatio = 'auto';
+  preview.className = 'mx-auto max-w-[300px]';
+  preview.replaceChildren(makeCampaignFlyer({
+    candidate_name: $('#flyer-candidate-name').value.trim(), office_title: $('#flyer-office').value.trim(),
+    district_zone: $('#flyer-district').value.trim(), body: $('#flyer-body').value.trim(),
+    paid_for_by: $('#flyer-sponsor').value.trim(), election_date: $('#flyer-election').value,
+    flyer_size: $('#flyer-size').value, design_type: upload ? 'upload' : 'template',
+    artwork_url: upload ? flyerArtworkPreviewUrl : '',
+  }, true));
+}
+
+function clearFlyerDraft() {
+  if (flyerArtworkPreviewUrl) URL.revokeObjectURL(flyerArtworkPreviewUrl);
+  flyerArtworkPreviewUrl = '';
+  $('#flyer-form')?.reset();
+  updateFlyerPreview();
+}
+
+async function attachFlyerArtworkUrls(flyers) {
+  return Promise.all(flyers.map(async (flyer) => {
+    if (!flyer.artwork_path) return flyer;
+    const {data} = await db.storage.from('candidate-flyers').createSignedUrl(flyer.artwork_path, 120);
+    return {...flyer, artwork_url:data?.signedUrl || ''};
+  }));
 }
 
 function timeAgo(value) {
@@ -531,8 +599,8 @@ async function loadPoliticalFlyers() {
   }
   note.textContent = 'Approved ads for your current area in ' + userLocation.region + '. Location does not establish your voting address.';
   const { data, error } = await db.from('political_flyers')
-    .select('id,headline,body,paid_for_by,target_scope,target_county,target_city,election_date')
-    .eq('status', 'approved').eq('target_state', userLocation.stateCode)
+    .select('id,headline,body,paid_for_by,target_scope,target_county,target_city,election_date,candidate_name,office_title,district_zone,flyer_size,design_type,artwork_path')
+    .eq('status', 'approved').eq('payment_status', 'paid').eq('target_state', userLocation.stateCode)
     .gte('election_date', new Date().toISOString().slice(0, 10))
     .order('created_at', { ascending: false }).limit(100);
   if (loadId !== flyerLoadId) return;
@@ -548,22 +616,31 @@ async function loadPoliticalFlyers() {
     (normalizeArea(flyer.target_county) === normalizeArea(userLocation.county) &&
       (flyer.target_scope === 'county' || normalizeArea(flyer.target_city) === normalizeArea(userLocation.city)))
   );
-  approvedHeroFlyers = matches;
+  const hydrated = await attachFlyerArtworkUrls(matches);
+  if (loadId !== flyerLoadId) return;
+  approvedHeroFlyers = hydrated;
   renderHeroFlyers();
-  list.innerHTML = matches.map((flyer) =>
-    '<article class="glass rounded-xl p-5 border border-amber-500/30" style="width:min(100%,2.5in);aspect-ratio:5/8;overflow-y:auto">' +
-    '<p class="text-xs font-semibold text-amber-300 mb-3">Paid political advertisement</p>' +
-    '<h3 class="text-xl font-bold mb-2">' + escapeHtml(flyer.headline) + '</h3>' +
-    '<p class="text-sm text-slate-300 whitespace-pre-wrap">' + escapeHtml(flyer.body) + '</p>' +
-    '<p class="text-xs text-slate-400 mt-4">Paid for by ' + escapeHtml(flyer.paid_for_by) +
-    ' · Election ' + escapeHtml(flyer.election_date) + '</p></article>'
-  ).join('');
+  list.replaceChildren(...hydrated.map((flyer) => {
+    const card = makeCampaignFlyer(flyer);
+    card.style.maxWidth = '300px';
+    return card;
+  }));
   if (!matches.length) note.textContent += ' No approved political flyers match this area.';
 }
 
 function setupPoliticalFlyers() {
   const state = $('#flyer-state');
   if (!state) return;
+  $('#flyer-form').addEventListener('input', updateFlyerPreview);
+  $('#flyer-form').addEventListener('change', updateFlyerPreview);
+  $('#flyer-artwork').addEventListener('change', () => {
+    if (flyerArtworkPreviewUrl) URL.revokeObjectURL(flyerArtworkPreviewUrl);
+    const file = $('#flyer-artwork').files[0];
+    flyerArtworkPreviewUrl = file && ['image/png','image/jpeg','image/webp'].includes(file.type) &&
+      file.size <= 10485760 ? URL.createObjectURL(file) : '';
+    updateFlyerPreview();
+  });
+  updateFlyerPreview();
   state.innerHTML = '<option value="">Choose state</option>' + STATES.map(([code, name]) =>
     '<option value="' + code + '">' + escapeHtml(name) + '</option>').join('');
   const updateCommitteeId = () => {
@@ -608,9 +685,42 @@ function setupPoliticalFlyers() {
       status.textContent = 'Enter the same California campaign committee ID in your verification profile and on this flyer.';
       return;
     }
-    const { error } = await db.from('political_flyers').insert({
+    const button = event.submitter;
+    if (button.disabled) return;
+    button.disabled = true;
+    status.textContent = 'Saving your private flyer…';
+    let artworkPath = null;
+    let saved = false;
+    try {
+      const id = crypto.randomUUID();
+      const design = $('#flyer-design').value;
+      if (design === 'upload') {
+        const file = $('#flyer-artwork').files[0];
+        if (!file || !['image/png','image/jpeg','image/webp'].includes(file.type) ||
+            file.size === 0 || file.size > 10485760) throw new Error('Choose a PNG, JPEG or WebP flyer up to 10 MB.');
+        const bytes = new Uint8Array(await file.slice(0,12).arrayBuffer());
+        const valid = file.type === 'image/png' ? [137,80,78,71,13,10,26,10].every((v,i)=>bytes[i]===v) :
+          file.type === 'image/jpeg' ? bytes[0]===255 && bytes[1]===216 && bytes[2]===255 :
+          String.fromCharCode(...bytes.slice(0,4))==='RIFF' && String.fromCharCode(...bytes.slice(8,12))==='WEBP';
+        if (!valid) throw new Error('The artwork contents do not match its image type.');
+        const ext = {'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[file.type];
+        artworkPath = user.id + '/' + id + '.' + ext;
+        const {error:uploadError} = await db.storage.from('candidate-flyers').upload(artworkPath,file,{contentType:file.type,upsert:false});
+        if (uploadError) throw new Error('Could not upload the private flyer artwork. Try again.');
+      }
+      const name = $('#flyer-candidate-name').value.trim();
+      const office = $('#flyer-office').value.trim();
+      const { error } = await db.from('political_flyers').insert({
+      id,
       owner_id: user.id,
-      headline: $('#flyer-headline').value.trim(),
+      headline: name + ' for ' + office,
+      candidate_name: name,
+      office_title: office,
+      district_zone: $('#flyer-district').value.trim(),
+      flyer_size: $('#flyer-size').value,
+      design_type: design,
+      artwork_path: artworkPath,
+      requested_fee_amount_cents: Number($('#flyer-requested-price').value),
       body: $('#flyer-body').value.trim(),
       paid_for_by: $('#flyer-sponsor').value.trim(),
       target_state: state.value,
@@ -620,11 +730,16 @@ function setupPoliticalFlyers() {
       target_city: scope.value === 'city' ? $('#flyer-city').value.trim() : null,
       election_date: $('#flyer-election').value,
     });
-    status.textContent = error ? 'Could not save your flyer. Check the election date and required fields.' :
-      'Saved to your profile. It stays hidden until identity, campaign ID, sponsor, and placement are approved.';
-    if (!error) {
-      $('#flyer-form').reset();
-      loadMyFlyers();
+      if (error) throw new Error('Could not save your flyer. Check the election date, verification and required fields.');
+      saved = true;
+      status.textContent = 'Saved privately for review. SPOYLT confirms the area and price, then your payment button appears below. Public placement requires approval and confirmed payment.';
+      clearFlyerDraft();
+      await loadMyFlyers();
+    } catch (error) {
+      if (artworkPath && !saved) await db.storage.from('candidate-flyers').remove([artworkPath]);
+      status.textContent = error.message || 'Could not save your flyer.';
+    } finally {
+      button.disabled = false;
     }
     updateScope();
     updateCommitteeId();
@@ -682,9 +797,11 @@ async function loadMyFlyers() {
     box.innerHTML = '<p class="text-sm text-slate-400">Sign in to see your submitted flyers.</p>';
     return;
   }
+  const ownerId = currentUser.id;
   const { data, error } = await db.from('political_flyers')
-    .select('id,headline,status,payment_status,created_at,committee_id,fee_amount_cents,fee_geography_id').eq('owner_id', currentUser.id)
+    .select('id,headline,body,paid_for_by,election_date,status,payment_status,created_at,committee_id,fee_amount_cents,fee_geography_id,candidate_name,office_title,district_zone,flyer_size,design_type,artwork_path,requested_fee_amount_cents').eq('owner_id', ownerId)
     .order('created_at', { ascending: false }).limit(30);
+  if (currentUser?.id !== ownerId) return;
   if (error) {
     box.textContent = 'Your flyers could not load right now.';
     return;
@@ -693,7 +810,10 @@ async function loadMyFlyers() {
     ((data || []).length ? data.map((flyer) =>
       '<div class="border border-slate-700 rounded-lg p-3 text-sm"><strong>' + escapeHtml(flyer.headline) +
       '</strong><span class="text-slate-400"> · ' + escapeHtml(flyer.status.replaceAll('_', ' ')) +
-      '</span>' + (flyer.status === 'awaiting_payment' && flyer.payment_status === 'unpaid'
+      '</span><p class="mt-2 text-slate-300">' + flyerSizeLabel(flyer.flyer_size) +
+      (flyer.requested_fee_amount_cents ? ' · Requested area price $' + (flyer.requested_fee_amount_cents / 100).toFixed(0) : '') +
+      '</p><div data-flyer-preview="' + escapeHtml(flyer.id) + '" class="mt-3 max-w-[240px]"></div>' +
+      (flyer.status === 'awaiting_payment' && flyer.payment_status === 'unpaid'
         ? (flyer.fee_geography_id && [14900, 29900, 49500].includes(flyer.fee_amount_cents)
           ? '<button type="button" data-pay-flyer="' + escapeHtml(flyer.id) +
             '" data-pay-label="Pay $' + (flyer.fee_amount_cents / 100).toFixed(0) + ' for this flyer"' +
@@ -701,6 +821,9 @@ async function loadMyFlyers() {
             (flyer.fee_amount_cents / 100).toFixed(0) + ' for this flyer</button>'
           : '<p class="mt-3 text-amber-300">Fee pending reviewer assignment.</p>')
         : '') + '</div>').join('') : '<p class="text-sm text-slate-400">No flyers saved yet.</p>');
+  const hydrated = await attachFlyerArtworkUrls(data || []);
+  if (currentUser?.id !== ownerId) return;
+  hydrated.forEach((flyer) => box.querySelector('[data-flyer-preview="' + flyer.id + '"]')?.replaceChildren(makeCampaignFlyer(flyer,true)));
 }
 
 function renderCategories() {
@@ -1049,6 +1172,10 @@ function renderVerificationStatus() {
     (!verificationRequest.term_end || verificationRequest.term_end >= today));
   ['#official-showcase', '#my-campaign-profile', '#official-ai-tools'].forEach((selector) =>
     $(selector)?.classList.toggle('hidden', !verified));
+  if (!verified) {
+    clearFlyerDraft();
+    $('#my-flyers')?.replaceChildren();
+  }
   $('#official-gate-note')?.classList.toggle('hidden', verified);
 }
 
