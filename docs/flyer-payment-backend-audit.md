@@ -51,10 +51,30 @@ npm test --prefix tests
 `tests/flyer-payments-database.sql` is a trusted-administrator transaction that
 rolls back every fixture. Review it before executing against another database.
 
-## Activation still blocked
+## Live signature and destination verified
 
-A correct URL and rejection of forged signatures do not demonstrate that the
-stored `STRIPE_WEBHOOK_SECRET` matches the live destination. Signed live Stripe
-delivery and correct persisted flyer state have not been verified in this audit.
-Keep `FLYER_PAYMENTS_ENABLED` absent or `false` until that evidence is available.
-An isolated signed handler test does not replace live destination verification.
+On September 30, 2026, two non-financial live `customer.updated` events were
+delivered by Stripe to the existing Supabase destination:
+
+| Event | Delivery time (UTC) | Response |
+| --- | --- | --- |
+| `evt_1ULSnlPwjqBUKfVtu8R0FyBI` | 19:04:26 | HTTP 200, `{"received":true}` |
+| `evt_1ULSozPwjqBUKfVtBne9zWxt` | 19:05:41 | HTTP 200, `{"received":true}` |
+
+Stripe's Dashboard showed Delivered for both events. Supabase's function logs
+independently recorded both HTTP 200 responses with the Stripe webhook user agent.
+The deployed handler verifies signatures before acknowledging even ignored event
+types, so this confirms the live destination and stored signing secret work together.
+
+The events came from adding and removing a temporary customer metadata marker.
+No payment, invoice, subscription or payment method was changed. The marker was
+removed, and the webhook's original nine subscribed events were restored and
+confirmed using Stripe's read API. No Stripe secret was viewed or changed.
+
+## Paid-flyer activation still blocked
+
+This verifies live signed delivery, not a live paid-flyer checkout or publication.
+The paid-flyer lifecycle was verified using isolated handler tests and rolled-back
+database fixtures above. Keep `FLYER_PAYMENTS_ENABLED` absent or `false` until a
+controlled paid-flyer delivery and its persisted state are verified. No real charge
+was made, and checkout remains disabled.
