@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test flyer-payments.test.mjs" },
+  "dependencies": { "stripe": "22.4.0" }
+}

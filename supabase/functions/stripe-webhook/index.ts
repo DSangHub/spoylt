@@ -47,7 +47,7 @@ Deno.serve(async (req: Request) => {
         if (lookupError) throw lookupError;
         const fee = flyer?.fee_amount_cents;
         if (![14900, 29900, 49500].includes(fee) || !flyer?.fee_geography_id ||
-            !Number.isSafeInteger(flyer.fee_population) || !flyer.fee_population_year ||
+            !Number.isSafeInteger(flyer.fee_population) || flyer.fee_population < 1 || !flyer.fee_population_year ||
             session.metadata.fee_amount_cents !== String(fee) ||
             session.mode !== "payment" || session.currency !== "usd" || session.amount_total !== fee ||
             !session.metadata.flyer_id || !session.metadata.user_id) {
@@ -68,7 +68,10 @@ Deno.serve(async (req: Request) => {
           throw new Error("Flyer payment intent does not match the checkout.");
         }
         const charge = intent.latest_charge;
-        const refunded = typeof charge !== "string" && charge != null && charge.amount_refunded > 0;
+        if (typeof charge === "string" || charge == null) {
+          throw new Error("Flyer charge could not be reconciled.");
+        }
+        const refunded = charge.amount_refunded > 0;
         const paymentStatus = refunded ? "refunded" : "paid";
         const { data: updated, error: flyerError } = await admin.from("political_flyers")
           .update({ payment_status: paymentStatus, stripe_payment_intent_id: paymentIntentId,
@@ -78,6 +81,24 @@ Deno.serve(async (req: Request) => {
           .eq("status", "awaiting_payment").eq("payment_status", "unpaid")
           .select("id").maybeSingle();
         if (flyerError) throw flyerError;
+        if (updated && !refunded) {
+          // A refund can arrive after the Stripe read above but before our
+          // unpaid -> paid update. Its webhook cannot match a still-unpaid row.
+          // Read again after attaching the intent; subsequent refunds now match
+          // the paid row, while earlier refunds are caught by this reconciliation.
+          const current = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
+          const currentCharge = current.latest_charge;
+          if (typeof currentCharge === "string" || currentCharge == null) {
+            throw new Error("Flyer charge could not be reconciled after fulfillment.");
+          }
+          if (currentCharge.amount_refunded > 0) {
+            const { error: refundError } = await admin.from("political_flyers")
+              .update({ payment_status: "refunded", status: "paused" })
+              .eq("id", session.metadata.flyer_id).eq("stripe_payment_intent_id", paymentIntentId)
+              .eq("payment_status", "paid");
+            if (refundError) throw refundError;
+          }
+        }
         if (!updated) {
           const { data: prior, error: priorError } = await admin.from("political_flyers")
             .select("id,payment_status").eq("id", session.metadata.flyer_id)

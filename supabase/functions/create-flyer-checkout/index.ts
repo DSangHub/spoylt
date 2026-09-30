@@ -43,12 +43,31 @@ Deno.serve(async (req: Request) => {
       const existing = await stripe.checkout.sessions.retrieve(flyer.stripe_checkout_session_id);
       if (existing.status === "open" && existing.url) {
         if (existing.amount_total !== flyer.fee_amount_cents ||
-            existing.metadata?.fee_amount_cents !== String(flyer.fee_amount_cents)) {
+            existing.metadata?.fee_amount_cents !== String(flyer.fee_amount_cents) ||
+            existing.id !== flyer.stripe_checkout_session_id || existing.mode !== "payment" ||
+            existing.currency !== "usd" || existing.client_reference_id !== flyer.id ||
+            existing.metadata?.kind !== "political_flyer" ||
+            existing.metadata.flyer_id !== flyer.id || existing.metadata.user_id !== user.id) {
           throw new Error("Existing checkout does not match the reviewed fee. Contact support.");
         }
         return Response.json({ url: existing.url }, { headers: cors });
       }
-      if (existing.status === "complete") throw new Error("This flyer checkout has completed. Please wait for payment confirmation.");
+      if (existing.status === "complete") {
+        const intentId = typeof existing.payment_intent === "string"
+          ? existing.payment_intent : existing.payment_intent?.id;
+        if (existing.payment_status !== "unpaid" || !intentId) {
+          throw new Error("This flyer checkout has completed. Please wait for payment confirmation.");
+        }
+        const intent = await stripe.paymentIntents.retrieve(intentId);
+        // Delayed payments must not start another charge while still processing.
+        // A confirmed failed/canceled intent can safely create a new session;
+        // its idempotency key is based on the previous attached session.
+        if (!["requires_payment_method", "canceled"].includes(intent.status) ||
+            intent.metadata.kind !== "political_flyer" || intent.metadata.flyer_id !== flyer.id ||
+            intent.metadata.fee_amount_cents !== String(flyer.fee_amount_cents)) {
+          throw new Error("This flyer checkout has completed. Please wait for payment confirmation.");
+        }
+      }
     }
 
     const siteUrl = (Deno.env.get("SITE_URL") || "https://spoylt.org").replace(/\/$/, "");
@@ -73,7 +92,16 @@ Deno.serve(async (req: Request) => {
       ? save.eq("stripe_checkout_session_id", flyer.stripe_checkout_session_id)
       : save.is("stripe_checkout_session_id", null);
     const { data: saved, error: saveError } = await save.select("id").maybeSingle();
-    if (saveError || !saved) {
+    // Stripe returns the same session to concurrent requests with this
+    // idempotency key. A losing database CAS must not expire the winner's session.
+    // A database error leaves attachment uncertain, so let the request retry.
+    if (saveError) throw new Error("Could not attach checkout to this flyer. Please retry.");
+    if (!saved) {
+      const { data: attached, error: attachedError } = await admin.from("political_flyers")
+        .select("id").eq("id", flyer.id).eq("owner_id", user.id)
+        .eq("stripe_checkout_session_id", session.id).maybeSingle();
+      if (attachedError) throw new Error("Could not confirm checkout attachment. Please retry.");
+      if (attached) return Response.json({ url: session.url }, { headers: cors });
       await stripe.checkout.sessions.expire(session.id);
       throw new Error("Could not attach checkout to this flyer.");
     }
