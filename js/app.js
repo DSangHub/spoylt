@@ -178,6 +178,7 @@ function makeCampaignFlyer(flyer, preview = false) {
     escapeHtml(flyer.candidate_name || flyer.headline || 'Your name') + '</h3>' +
     (flyer.office_title ? '<p class="mt-2 text-sm font-bold text-sky-300">Running for ' + escapeHtml(flyer.office_title) + '</p>' : '') +
     (flyer.district_zone ? '<p class="mt-1 text-xs text-sky-200">' + escapeHtml(flyer.district_zone) + '</p>' : '') +
+    (flyer.location_label ? '<p class="mt-1 text-xs text-sky-200">' + escapeHtml(flyer.location_label) + '</p>' : '') +
     '<p class="mt-4 whitespace-pre-wrap text-xs leading-relaxed text-slate-200">' + escapeHtml(flyer.body || 'Your message to voters') + '</p>' +
     '<p class="mt-auto pt-4 text-[10px] leading-tight text-slate-300">Paid for by ' + escapeHtml(flyer.paid_for_by || '[legal sponsor name]') +
     (flyer.election_date ? '<br>Election ' + escapeHtml(flyer.election_date) : '') + '</p>');
@@ -194,7 +195,7 @@ function updateFlyerPreview() {
   preview.className = 'mx-auto max-w-[300px]';
   preview.replaceChildren(makeCampaignFlyer({
     candidate_name: $('#flyer-candidate-name').value.trim(), office_title: $('#flyer-office').value.trim(),
-    district_zone: $('#flyer-district').value.trim(), body: $('#flyer-body').value.trim(),
+    district_zone: $('#flyer-district').value.trim(), location_label: $('#flyer-location').value.trim(), body: $('#flyer-body').value.trim(),
     paid_for_by: $('#flyer-sponsor').value.trim(), election_date: $('#flyer-election').value,
     flyer_size: $('#flyer-size').value, design_type: upload ? 'upload' : 'template',
     artwork_url: upload ? flyerArtworkPreviewUrl : '',
@@ -599,7 +600,7 @@ async function loadPoliticalFlyers() {
   }
   note.textContent = 'Approved ads for your current area in ' + userLocation.region + '. Location does not establish your voting address.';
   const { data, error } = await db.from('political_flyers')
-    .select('id,headline,body,paid_for_by,target_scope,target_county,target_city,election_date,candidate_name,office_title,district_zone,flyer_size,design_type,artwork_path')
+    .select('id,headline,body,paid_for_by,target_scope,target_county,target_city,election_date,candidate_name,office_title,district_zone,location_label,flyer_size,design_type,artwork_path')
     .eq('status', 'approved').eq('payment_status', 'paid').eq('target_state', userLocation.stateCode)
     .gte('election_date', new Date().toISOString().slice(0, 10))
     .order('created_at', { ascending: false }).limit(100);
@@ -717,6 +718,7 @@ function setupPoliticalFlyers() {
       candidate_name: name,
       office_title: office,
       district_zone: $('#flyer-district').value.trim(),
+      location_label: $('#flyer-location').value.trim(),
       flyer_size: $('#flyer-size').value,
       design_type: design,
       artwork_path: artworkPath,
@@ -799,7 +801,7 @@ async function loadMyFlyers() {
   }
   const ownerId = currentUser.id;
   const { data, error } = await db.from('political_flyers')
-    .select('id,headline,body,paid_for_by,election_date,status,payment_status,created_at,committee_id,fee_amount_cents,fee_geography_id,candidate_name,office_title,district_zone,flyer_size,design_type,artwork_path,requested_fee_amount_cents').eq('owner_id', ownerId)
+    .select('id,headline,body,paid_for_by,election_date,status,payment_status,created_at,committee_id,fee_amount_cents,fee_geography_id,candidate_name,office_title,district_zone,location_label,flyer_size,design_type,artwork_path,requested_fee_amount_cents').eq('owner_id', ownerId)
     .order('created_at', { ascending: false }).limit(30);
   if (currentUser?.id !== ownerId) return;
   if (error) {
