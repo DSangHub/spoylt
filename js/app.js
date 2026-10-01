@@ -525,8 +525,8 @@ async function loadCandidateVideos() {
   if (!list.childElementCount) note.textContent += ' No approved videos are available.';
 }
 
-// Enable after approved deployment of the external speech-screening function.
-const VIDEO_SCREENING_ENABLED = false;
+// External OpenAI speech screening authorized and deployed.
+const VIDEO_SCREENING_ENABLED = true;
 
 async function requestVideoScreening(id) {
   if (!VIDEO_SCREENING_ENABLED) return 'Video saved privately. Automated screening activation is pending; it cannot be published yet.';
