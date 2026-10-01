@@ -856,11 +856,29 @@ function highlightChip(id) {
   $$('.category-chip').forEach((button) => button.classList.toggle('active', button.dataset.cat === id));
 }
 
+function refreshCountyOptions() {
+  const select = $('#county-select');
+  if (!select) return;
+  const state = $('#state-select')?.value || '';
+  const selected = select.value;
+  const counties = [...new Set([
+    ...(state === 'CA' ? CA_COUNTIES : []),
+    ...ballotMeasures.filter((measure) => measure.state_code === state && measure.scope === 'county')
+      .map((measure) => measure.county_name).filter(Boolean),
+  ])].sort((a, b) => a.localeCompare(b));
+  const boroughs = { Bronx: 'Bronx', Kings: 'Brooklyn', 'New York': 'Manhattan', Queens: 'Queens', Richmond: 'Staten Island' };
+  select.innerHTML = '<option value="">Choose a county for local measures</option>' +
+    counties.map((county) => '<option value="' + escapeHtml(county) + '">' +
+      escapeHtml(state === 'NY' && boroughs[county]
+        ? boroughs[county] + ' (' + county + ' County)' : county + ' County') + '</option>').join('');
+  select.value = counties.includes(selected) ? selected : '';
+}
+
 function matchingBallotMeasures() {
   const state = $('#state-select')?.value || '';
   const county = $('#county-select')?.value || '';
   return ballotMeasures.filter((measure) => {
-    if (measure.state_code !== state || measure.scope !== propositionScope) return false;
+    if (measure.state_code !== state || measure.scope !== (propositionScope === 'state' ? 'state' : 'county')) return false;
     return propositionScope === 'state' || measure.county_name === county;
   });
 }
@@ -877,7 +895,7 @@ function refreshBallotMeasureOptions() {
   select.innerHTML = '<option value="">' + fallback + '</option>' +
     matches.map((measure) =>
       '<option value="' + escapeHtml(measure.id) + '">' +
-      (measure.scope === 'state' ? 'Proposition ' : 'Measure ') +
+      (measure.scope === 'state' ? 'Proposition ' : (measure.jurisdiction ? escapeHtml(measure.jurisdiction) + ' · ' : '') + 'Measure ') +
       escapeHtml(measure.measure_number) + ' — ' + escapeHtml(measure.title) +
       '</option>'
     ).join('');
@@ -918,6 +936,7 @@ async function loadBallotMeasures() {
     return;
   }
   ballotMeasures = data || [];
+  refreshCountyOptions();
   refreshBallotMeasureOptions();
 }
 
@@ -962,16 +981,12 @@ function setupScopeControls() {
     ).join(''));
     stateSelect.value = 'CA';
   }
-  if (countySelect) {
-    countySelect.insertAdjacentHTML('beforeend', CA_COUNTIES.map((county) =>
-      '<option value="' + county + '">' + county + ' County</option>'
-    ).join(''));
-  }
+  refreshCountyOptions();
   $$('input[name="proposition-scope"]').forEach((input) =>
     input.addEventListener('change', updateScopeUI)
   );
   stateSelect?.addEventListener('change', () => {
-    if (stateSelect.value !== 'CA' && countySelect) countySelect.value = '';
+    refreshCountyOptions();
     refreshBallotMeasureOptions();
     applySelectedBallotMeasure();
     updatePostingLocation();
