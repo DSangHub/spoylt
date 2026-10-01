@@ -3,3 +3,7 @@ verify_jwt = false
 
 [functions.create-flyer-checkout]
 verify_jwt = true
+
+[functions.moderate-candidate-video]
+verify_jwt = true
+

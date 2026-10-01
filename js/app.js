@@ -525,21 +525,45 @@ async function loadCandidateVideos() {
   if (!list.childElementCount) note.textContent += ' No approved videos are available.';
 }
 
+// Enable after approved deployment of the external speech-screening function.
+const VIDEO_SCREENING_ENABLED = false;
+
+async function requestVideoScreening(id) {
+  if (!VIDEO_SCREENING_ENABLED) return 'Video saved privately. Automated screening activation is pending; it cannot be published yet.';
+  const { data, error } = await db.functions.invoke('moderate-candidate-video', { body: { video_id: id } });
+  return error ? 'Screening did not complete. Your video remains private; retry from your submissions.'
+    : (data?.message || 'Screening status: ' + (data?.moderation_status || 'queued'));
+}
+
 async function loadMyVideos() {
   const box = $('#my-videos');
   if (!box) return;
   box.replaceChildren();
   if (!currentUser) return;
   const { data, error } = await db.from('candidate_videos')
-    .select('title,status,target_zip').eq('owner_id', currentUser.id)
+    .select('id,title,status,target_zip,moderation_status').eq('owner_id', currentUser.id)
     .order('created_at', { ascending: false }).limit(30);
   box.textContent = error ? 'Your submissions could not load.' :
     (data || []).length ? 'Your video submissions:' : 'No videos submitted yet.';
   for (const item of data || []) {
     const row = document.createElement('p');
     row.className = 'text-sm text-slate-300';
-    row.textContent = item.title + ' · ZIP ' + item.target_zip + ' · ' + item.status.replaceAll('_', ' ');
+    row.textContent = item.title + ' · ZIP ' + item.target_zip + ' · ' + item.status.replaceAll('_', ' ') +
+      ' · Speech screening: ' + item.moderation_status.replaceAll('_', ' ');
     box.append(row);
+    if (VIDEO_SCREENING_ENABLED && item.status === 'pending_review' && ['queued', 'error', 'processing'].includes(item.moderation_status)) {
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'text-sm text-sky-300 underline mt-1 mb-3';
+      retry.textContent = 'Retry video screening';
+      retry.addEventListener('click', async () => {
+        retry.disabled = true;
+        $('#video-submit-status').textContent = 'Checking video speech and identity claims…';
+        $('#video-submit-status').textContent = await requestVideoScreening(item.id);
+        await loadMyVideos();
+      });
+      box.append(retry);
+    }
   }
 }
 
@@ -582,7 +606,14 @@ function setupCandidateVideos() {
     });
     status.textContent = error ? 'Video uploaded privately, but submission failed. Contact support to complete review.' :
       'Submitted for SPOYLT review. It is hidden until verification and placement approval.';
-    if (!error) { $('#candidate-video-form').reset(); loadMyVideos(); }
+    if (!error) {
+      $('#candidate-video-form').reset();
+      status.textContent = VIDEO_SCREENING_ENABLED
+        ? 'Uploaded privately. Checking speech for foul language and conflicting identity claims…'
+        : 'Uploaded privately. Automated screening activation is pending.';
+      status.textContent = await requestVideoScreening(id);
+      await loadMyVideos();
+    }
   });
 }
 
