@@ -67,8 +67,10 @@ async function loadAssistantDirectory() {
   const select=document.getElementById('assistant-person');if(!select)return;
   const selected=select.value;select.replaceChildren(new Option('Choose an enabled assistant',''));
   if(!currentUser){assistantNote('assistant-ask-status','Sign in to choose an enabled assistant.');return;}
+  const directoryUser=currentUser.id;
   let data;
   try {const result=await assistantCall({action:'directory'}); data=result.assistants;} catch {assistantNote('assistant-ask-status','The assistant directory is unavailable.');return;}
+  if(currentUser?.id!==directoryUser)return;
   (data||[]).forEach(p=>select.add(new Option([p.display_name,p.office_title,p.district,p.jurisdiction].filter(Boolean).join(' · '),p.owner_id)));
   if((data||[]).some(p=>p.owner_id===selected))select.value=selected;
   assistantNote('assistant-ask-status',data?.length?'':'No verified accounts have enabled automatic replies yet.');
@@ -101,11 +103,12 @@ function setupOfficialAssistant() {
   });
   document.getElementById('assistant-ask-form')?.addEventListener('submit',async e=>{
     e.preventDefault();if(!await requireUser())return;
+    const askingUser=currentUser.id;
     const owner_id=document.getElementById('assistant-person').value,question=document.getElementById('assistant-question').value.trim();
     const fingerprint=JSON.stringify([currentUser.id,owner_id,question]);
     if(fingerprint!==assistantQuestionFingerprint){assistantQuestionKey=crypto.randomUUID();assistantQuestionFingerprint=fingerprint;}
     const button=document.getElementById('assistant-send');button.disabled=true;assistantNote('assistant-ask-status','Checking your question…');
-    try{const r=await assistantCall({action:'ask',owner_id,question,request_key:assistantQuestionKey,consent:document.getElementById('assistant-visitor-consent').checked});assistantNote('assistant-ask-status',[r.label,r.answer,r.message].filter(Boolean).join('\n'));if(r.status!=='processing'){assistantQuestionKey=null;assistantQuestionFingerprint=null;}await loadAssistantQuestions();}catch(error){assistantNote('assistant-ask-status',error.message);}finally{button.disabled=false;}
+    try{const r=await assistantCall({action:'ask',owner_id,question,request_key:assistantQuestionKey,consent:document.getElementById('assistant-visitor-consent').checked});if(currentUser?.id!==askingUser)return;assistantNote('assistant-ask-status',[r.label,r.answer,r.message].filter(Boolean).join('\n'));if(r.status!=='processing'){assistantQuestionKey=null;assistantQuestionFingerprint=null;}await loadAssistantQuestions();}catch(error){assistantNote('assistant-ask-status',error.message);}finally{button.disabled=false;}
   });
   document.getElementById('assistant-refresh')?.addEventListener('click',async()=>{await loadAssistantDirectory();await loadAssistantQuestions();});
   loadAssistantDirectory();
