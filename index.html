@@ -43,6 +43,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
+    dialog::backdrop { background: rgba(2, 6, 23, 0.8); }
     .gradient-hero {
       background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(14, 165, 233, 0.25), transparent),
                   linear-gradient(180deg, #0f172a 0%, #020617 100%);
@@ -274,6 +275,7 @@
               <label class="flex items-center gap-2 text-sm text-slate-300"><input id="stay-signed-in" type="checkbox" checked class="accent-sky-500" /> Stay signed in on this device</label>
               <button type="submit" class="w-full border border-sky-500 text-sky-300 hover:bg-sky-500 hover:text-white font-semibold px-5 py-3 rounded-xl transition">Sign In</button>
             </form>
+            <button type="button" data-forgot-password class="mt-3 text-sm font-semibold text-sky-300 hover:text-white underline underline-offset-4">Forgot password?</button>
             <p class="text-xs text-slate-500 mt-3">Password sign-in does not send another email.</p>
           </div>
         </div>
@@ -742,12 +744,37 @@
     </div>
   </footer>
 
+
+  <dialog id="forgot-password-dialog" aria-labelledby="forgot-password-title" class="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-600 bg-slate-900 p-6 text-slate-100 shadow-2xl">
+    <div class="flex items-center justify-between gap-3"><h2 id="forgot-password-title" class="text-xl font-bold">Forgot your password?</h2><button type="button" data-close-password-dialog aria-label="Close password reset" class="text-slate-400 hover:text-white text-2xl">×</button></div>
+    <p class="mt-3 mb-5 text-sm text-slate-400">Enter the email you use for SPOYLT. We’ll send a link to choose a new password.</p>
+    <form id="forgot-password-form" class="space-y-4">
+      <label for="forgot-password-email" class="block text-sm">Email address</label>
+      <input id="forgot-password-email" type="email" required maxlength="254" autocomplete="email" class="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-white" />
+      <button id="forgot-password-send" type="submit" class="w-full rounded-xl bg-sky-500 hover:bg-sky-400 px-4 py-3 font-semibold disabled:opacity-50">Email reset link</button>
+    </form>
+    <p id="forgot-password-status" role="status" class="mt-4 text-sm text-sky-200"></p>
+  </dialog>
+  <dialog id="reset-password-dialog" aria-labelledby="reset-password-title" class="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-600 bg-slate-900 p-6 text-slate-100 shadow-2xl">
+    <div class="flex items-center justify-between gap-3"><h2 id="reset-password-title" class="text-xl font-bold">Choose a new password</h2><button type="button" data-close-password-dialog aria-label="Close new password form" class="text-slate-400 hover:text-white text-2xl">×</button></div>
+    <form id="reset-password-form" class="hidden mt-5 space-y-4">
+      <label for="reset-password" class="block text-sm">New password</label>
+      <div class="relative"><input id="reset-password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" class="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 pr-14 text-white" /><button type="button" class="password-toggle absolute inset-y-0 right-0 px-4 text-slate-300 hover:text-white" data-password="reset-password" aria-label="Show password" aria-pressed="false">👁</button></div>
+      <label for="reset-password-confirm" class="block text-sm">Confirm new password</label>
+      <div class="relative"><input id="reset-password-confirm" type="password" required minlength="8" maxlength="128" autocomplete="new-password" class="w-full rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 pr-14 text-white" /><button type="button" class="password-toggle absolute inset-y-0 right-0 px-4 text-slate-300 hover:text-white" data-password="reset-password-confirm" aria-label="Show password" aria-pressed="false">👁</button></div>
+      <button id="reset-password-save" type="submit" class="w-full rounded-xl bg-sky-500 hover:bg-sky-400 px-4 py-3 font-semibold disabled:opacity-50">Save new password</button>
+    </form>
+    <p id="reset-password-status" role="status" class="mt-4 text-sm text-sky-200"></p>
+    <button id="reset-password-new-link" type="button" class="hidden mt-4 text-sm text-sky-300 underline">Request a new reset link</button>
+  </dialog>
+
   <!-- Toast -->
   <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-600 text-white px-5 py-3 rounded-xl shadow-2xl transform translate-y-24 opacity-0 transition-all duration-300 z-50 max-w-sm"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/firewall.js"></script>
   <script src="js/official-assistant.js?v=20261002"></script>
-  <script src="js/app.js?v=20261002-remove-sample"></script>
+  <script src="js/password-recovery.js?v=20261002"></script>
+  <script src="js/app.js?v=20261002-password-reset"></script>
 </body>
 </html>

@@ -18,6 +18,9 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, 
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: sessionStorageAdapter },
 });
 
+// Register the recovery listener before initial auth-session processing completes.
+window.SpoyltPasswordRecovery.init(db.auth);
+
 const CATEGORIES = [
   { id: 'housing', label: 'Housing Crisis', icon: '🏠' },
   { id: 'gas', label: 'High Gas Prices', icon: '⛽' },
