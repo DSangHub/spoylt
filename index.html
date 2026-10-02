@@ -113,6 +113,7 @@
           <a href="#issues" class="hover:text-white transition">Issues</a>
           <a href="#board" class="hover:text-white transition">Community</a>
           <a href="#officials" class="hover:text-white transition">Officials</a>
+          <a href="#ask-official" class="hover:text-white transition">Ask AI</a>
           <a href="#my-campaign-profile" class="hover:text-white transition">My flyers</a>
           <a href="#firewall" class="hover:text-white transition">Firewall</a>
           <a href="#pricing" class="hover:text-white transition">Pricing</a>
@@ -641,6 +642,39 @@
           </div>
         </div>
       </div>
+      <div id="assistant-owner-tools" class="hidden glass rounded-3xl p-6 sm:p-8 mt-8 border border-violet-500/30">
+        <h3 class="text-2xl font-bold mb-2">Automatic FAQ assistant</h3>
+        <p class="text-sm text-slate-400 mb-5">Verified Premium officials and candidates can authorize routine factual replies. Add up to 20 FAQs with public sources. AI selects an approved answer without rewriting it. Advocacy, personalized political persuasion, sensitive cases and uncovered questions require human handling.</p>
+        <form id="assistant-settings" class="space-y-4">
+          <label class="flex items-center gap-3"><input id="assistant-enabled" type="checkbox">Enable automatic FAQ replies</label>
+          <div id="assistant-faqs" class="space-y-3"></div>
+          <button id="assistant-add-faq" type="button" class="text-sm text-sky-300">+ Add FAQ</button>
+          <label class="flex items-start gap-3 text-xs text-slate-400"><input id="assistant-consent" type="checkbox" required>I approve these factual answers and public sources. I authorize OpenAI to process these FAQs and submitted questions to select automatic replies labeled “AI assistant for [my verified name]”. I will review unanswered questions and keep these facts current.</label>
+          <div class="flex flex-wrap gap-3"><button id="assistant-save" class="bg-violet-500 hover:bg-violet-400 rounded-xl px-5 py-3 font-semibold">Save approved FAQs and settings</button><button id="assistant-pause" type="button" class="border border-slate-600 rounded-xl px-5 py-3">Pause automatic replies</button></div>
+        </form>
+        <p id="assistant-config-status" role="status" class="mt-3 text-sm text-violet-200"></p>
+        <h4 class="font-semibold mt-6 mb-3">Private question inbox</h4>
+        <p class="text-xs text-slate-400 mb-3">Review automatic answers and write your own response to questions needing review. Use Refresh in the question panel to see new submissions.</p>
+        <div id="assistant-inbox" class="space-y-3 text-sm text-slate-300"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Opt-in factual FAQ assistant; private owner controls are verification-gated. -->
+  <section id="ask-official" class="py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto glass rounded-3xl p-6 sm:p-8">
+      <h2 class="text-2xl font-bold mb-3">Ask an official or candidate’s AI assistant</h2>
+      <p class="text-sm text-slate-400 mb-5">Enabled assistants answer routine factual questions using approved FAQs. Every automatic answer is labeled as AI. Questions without an approved answer go to the account owner for review. This is a private exchange, not a public post.</p>
+      <form id="assistant-ask-form" class="space-y-4">
+        <label class="block text-sm">Official or candidate<select id="assistant-person" required class="mt-2 w-full bg-slate-950 border border-slate-600 rounded-xl px-3 py-2"><option value="">Choose an enabled assistant</option></select></label>
+        <label class="block text-sm">Your question or comment<textarea id="assistant-question" required maxlength="2000" rows="3" class="mt-2 w-full bg-slate-950 border border-slate-600 rounded-xl px-3 py-2" placeholder="For example: Where can I find office hours?"></textarea></label>
+        <label class="flex gap-3 text-xs text-slate-400"><input id="assistant-visitor-consent" type="checkbox" required>I understand this uses AI, and my question is sent to OpenAI and saved for this account owner to review. I will not include confidential or sensitive personal information.</label>
+        <button id="assistant-send" class="bg-sky-500 hover:bg-sky-400 font-semibold rounded-xl px-5 py-3">Ask assistant</button>
+      </form>
+      <p id="assistant-ask-status" role="status" class="mt-4 text-sm text-sky-200 whitespace-pre-wrap"></p>
+      <div class="flex items-center justify-between mt-6 mb-3"><h3 class="font-semibold">My questions and replies</h3><button id="assistant-refresh" type="button" class="text-sm text-sky-300">Refresh</button></div>
+      <div id="assistant-history" class="space-y-3 text-sm text-slate-300">Sign in to view your questions.</div>
     </div>
   </section>
 
@@ -730,6 +764,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/firewall.js"></script>
-  <script src="js/app.js?v=20261001-video-screen-enabled"></script>
+  <script src="js/official-assistant.js?v=20261002"></script>
+  <script src="js/app.js?v=20261002-auto-assistant"></script>
 </body>
 </html>

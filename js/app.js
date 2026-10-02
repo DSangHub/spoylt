@@ -1225,6 +1225,7 @@ function renderVerificationStatus() {
     $('#my-flyers')?.replaceChildren();
   }
   $('#official-gate-note')?.classList.toggle('hidden', verified);
+  if (typeof refreshOfficialAssistant === 'function') refreshOfficialAssistant();
 }
 
 async function loadVerificationRequest() {
@@ -1310,6 +1311,7 @@ function setupVerification() {
 }
 
 function renderAiModeratorAccess() {
+  if (typeof refreshOfficialAssistant === "function") refreshOfficialAssistant();
   const premium = Boolean(currentUser && currentPlan === 'premium');
   const badge = $('#ai-moderator-access');
   if (badge) {
@@ -1426,6 +1428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupCandidateVideos();
   setupStripeButtons();
   setupAiModerator();
+  setupOfficialAssistant();
   renderFirewallPanel();
   $('#geo-btn')?.addEventListener('click', detectLocation);
 
@@ -1466,3 +1469,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'interactions' }, loadPropositions)
     .subscribe();
 });
+
