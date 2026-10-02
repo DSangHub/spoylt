@@ -67,7 +67,6 @@ let propositions = [];
 let ballotMeasures = [];
 let userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
 let viewingZip = '';
-let showSampleFlyer = false;
 let approvedHeroFlyers = [];
 let flyerLoadId = 0;
 let flyerArtworkPreviewUrl = '';
@@ -80,10 +79,6 @@ function renderHeroFlyers() {
   const pause = $('#flyer-pause');
   if (!aside || !track || !pause) return;
   const cards = [];
-  if (showSampleFlyer) {
-    const sample = $('#zip-sample-template')?.content.firstElementChild?.cloneNode(true);
-    if (sample) cards.push(sample);
-  }
   for (const flyer of approvedHeroFlyers) {
     const card = document.createElement('div');
     card.className = 'flyer-rotation-item flex items-center justify-center';
@@ -106,30 +101,18 @@ function renderHeroFlyers() {
   }
   track.classList.toggle('is-rotating', rotating);
   aside.classList.toggle('hidden', !cards.length);
-  $('#hero-layout')?.classList.toggle('has-zip-sample', !!cards.length);
+  $('#hero-layout')?.classList.toggle('has-local-flyers', !!cards.length);
   pause.classList.toggle('hidden', !rotating);
   pause.setAttribute('aria-pressed', 'false');
   pause.textContent = 'Pause flyers';
   aside.querySelector('.flyer-rotation')?.classList.remove('is-paused');
-  $('#flyer-rotation-note').textContent = showSampleFlyer ? 'Sample preview only · not an approved or paid ad' :
-    rotating ? 'Hover to pause · approved ads for your area' : 'Approved ad for your area';
+  $('#flyer-rotation-note').textContent = rotating ? 'Hover to pause · approved ads for your area' : 'Approved ad for your area';
 }
 
 $('#flyer-pause')?.addEventListener('click', (event) => {
   const paused = $('#location-flyers .flyer-rotation')?.classList.toggle('is-paused');
   event.currentTarget.setAttribute('aria-pressed', String(!!paused));
   event.currentTarget.textContent = paused ? 'Play flyers' : 'Pause flyers';
-});
-
-function showZipSample(postalCode) {
-  showSampleFlyer = postalCode === '95252';
-  renderHeroFlyers();
-}
-
-$('#zip-sample-form')?.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const zip = $('#zip-sample-input')?.value.trim() || '';
-  showZipSample(/^\d{5}$/.test(zip) ? zip : '');
 });
 
 function showToast(message, duration = 4200) {
@@ -449,7 +432,6 @@ async function detectLocation() {
     userLocation.region = address.state || '';
     userLocation.postalCode = /^\d{5}(?:-\d{4})?$/.test(address.postcode || '')
       ? address.postcode.slice(0, 5) : '';
-    showZipSample(userLocation.stateCode === 'CA' ? userLocation.postalCode : '');
     if (!$('#video-zip')?.value.trim()) {
       viewingZip = userLocation.postalCode;
       loadCandidateVideos();
@@ -461,7 +443,6 @@ async function detectLocation() {
     loadPoliticalFlyers();
   } catch (error) {
     userLocation = { city: 'your area', county: '', stateCode: '', region: '', postalCode: '', lat: null, lng: null };
-    showZipSample('');
     if (!$('#video-zip')?.value.trim()) {
       viewingZip = '';
       loadCandidateVideos();
