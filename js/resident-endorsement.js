@@ -2,6 +2,20 @@
   'use strict';
   const dialog = document.getElementById('resident-endorsement-dialog');
   const form = document.getElementById('resident-endorsement-form');
+  let artworkUrl = '';
+  function clearArtwork() {
+    if (artworkUrl) URL.revokeObjectURL(artworkUrl);
+    artworkUrl = '';
+    document.getElementById('resident-endorsement-artwork').removeAttribute('src');
+    document.getElementById('resident-endorsement-preview').hidden = true;
+  }
+  document.getElementById('resident-endorsement-download').addEventListener('click', () => {
+    if (!artworkUrl || document.getElementById('resident-endorsement-preview').hidden) return;
+    const link = document.createElement('a');
+    link.href = artworkUrl; link.download = 'spoylt-favorite-candidate-2x4.svg';
+    document.body.appendChild(link); link.click(); link.remove();
+  });
+  window.addEventListener('pagehide', clearArtwork);
   document.getElementById('resident-endorsement-open').addEventListener('click', () => {
     if (!dialog.open) dialog.showModal();
     form.elements.resident.focus();
@@ -27,7 +41,8 @@
   document.getElementById('flyer-form').addEventListener('change', updateCandidateRequest);
   candidateRequest.addEventListener('click', updateCandidateRequest);
   updateCandidateRequest();
-  form.addEventListener('input', () => { document.getElementById('resident-endorsement-preview').hidden = true; });
+  form.addEventListener('input', clearArtwork);
+  form.addEventListener('change', clearArtwork);
   form.addEventListener('submit', event => {
     event.preventDefault();
     if (!form.reportValidity()) return;
@@ -35,8 +50,12 @@
     for (const name of ['resident', 'candidate', 'office', 'location']) {
       values[name] = values[name].trim();
       if (!values[name]) { form.elements[name].focus(); return; }
-      document.getElementById('endorsement-preview-' + name).textContent = values[name];
+
     }
+    clearArtwork();
+    artworkUrl = URL.createObjectURL(new Blob([window.SpoyltEndorsementDesign.svg(values, values.frame !== 'blue')], {type:'image/svg+xml;charset=utf-8'}));
+    document.getElementById('resident-endorsement-artwork').src = artworkUrl;
+    document.getElementById('resident-endorsement-artwork').alt = 'Your personal candidate endorsement in a ' + (values.frame === 'blue' ? 'blue' : 'gold-style') + ' frame';
     document.getElementById('resident-endorsement-preview').hidden = false;
     const body = [
       'Please review my resident endorsement request.',
