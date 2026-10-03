@@ -65,7 +65,7 @@
       'Running for: ' + values.office,
       'ZIP code or location: ' + values.location,
       'Disclaimer: My own views, not paid or endorsed by any Candidate.',
-      'Requested placement: $49.50 per week.',
+      'Requested placement: $4.95 per week.',
       'Display option: ' + (values.display_option === 'weekly_subscription' ? 'Weekly subscription' : 'One-time seven-day placement'),
       'Cutoff: end of November 2, 2026, Pacific Time (2026-11-03T08:00:00Z).',
       'No placement beyond this cutoff.',
