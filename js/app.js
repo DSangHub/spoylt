@@ -20,6 +20,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, 
 
 // Register the recovery listener before initial auth-session processing completes.
 window.SpoyltPasswordRecovery.init(db.auth);
+window.SpoyltPropositionAds.init(db);
 
 const CATEGORIES = [
   { id: 'housing', label: 'Housing Crisis', icon: '🏠' },
@@ -602,6 +603,7 @@ function setupCandidateVideos() {
 }
 
 async function loadPoliticalFlyers() {
+  window.SpoyltPropositionAds.load(userLocation.stateCode);
   const loadId = ++flyerLoadId;
   const list = $('#flyer-list');
   const note = $('#flyer-location-note');
