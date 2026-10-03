@@ -11,6 +11,10 @@ const flyerSizeDescriptions: Record<string, string> = { "2x4": "2 by 4", "3x5": 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: cors });
+  // Fail closed: the legacy path has no seven-day entitlement expiry or weekly invoice fulfillment.
+  // Remove this hold only after weekly billing, cancellation and signed event tests are complete.
+  return Response.json({ error: "Weekly flyer billing is being configured. No charge has been made." },
+    { status: 503, headers: cors });
   try {
     if (Deno.env.get("FLYER_PAYMENTS_ENABLED") !== "true") {
       throw new Error("Flyer payments are being configured. No charge has been made.");
