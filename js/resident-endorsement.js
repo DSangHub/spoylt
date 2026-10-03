@@ -10,6 +10,7 @@
     document.getElementById('resident-endorsement-preview').hidden = true;
   }
   document.getElementById('resident-endorsement-download').addEventListener('click', () => {
+    if (document.getElementById('resident-endorsement-download').disabled) return;
     if (!artworkUrl || document.getElementById('resident-endorsement-preview').hidden) return;
     const link = document.createElement('a');
     link.href = artworkUrl; link.download = 'spoylt-favorite-candidate-2x4.svg';
@@ -65,7 +66,8 @@
       'Running for: ' + values.office,
       'ZIP code or location: ' + values.location,
       'Disclaimer: My own views, not paid or endorsed by any Candidate.',
-      'Requested placement: $4.95 per week.',
+      'Requested flyer placement: $49.95 per week.',
+      'Framed picture download: ' + (values.frame_purchase === 'yes' ? '$4.95 one-time purchase requested' : 'Not requested'),
       'Display option: ' + (values.display_option === 'weekly_subscription' ? 'Weekly subscription' : 'One-time seven-day placement'),
       'Cutoff: end of November 2, 2026, Pacific Time (2026-11-03T08:00:00Z).',
       'No placement beyond this cutoff.',
