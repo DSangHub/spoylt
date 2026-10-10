@@ -9,3 +9,7 @@ Tags contain 3–40 ASCII letters, digits or underscores and start with a letter
 Run `scripts/candidate-hashtags-schema.sql` for initial setup and `tests/candidate-hashtags-database.sql` for a transactional allow/deny test. Fixtures roll back. Run `node --test tests/candidate-hashtags.test.cjs` for client gate and normalization checks.
 
 This release reserves and copies tags for candidate posts. It does not implement mention matching, email alerts, or a public hashtag directory.
+
+## Email consent
+
+Run `scripts/candidate-hashtag-email-consent.sql` after the initial schema. The optional checkbox starts unchecked, loads the stored preference, and saves with the hashtag. `email_notifications` is false by default. A server-side trigger records `email_consent_at` on opt-in and clears it on opt-out; clients cannot forge its timestamp. The account email is the intended destination. Mention matching and email delivery remain pending, explicitly stated on the form.

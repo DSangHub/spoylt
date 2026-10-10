@@ -20,13 +20,15 @@ async function refreshCandidateHashtag() {
   document.getElementById('candidate-hashtag-tools')?.classList.toggle('hidden', !eligible);
   candidateHashtagSaved = null;
   document.getElementById('candidate-hashtag').value = '';
+  document.getElementById('candidate-hashtag-email-consent').checked = false;
   document.getElementById('candidate-hashtag-copy').disabled = true;
   if (!eligible) return;
   hashtagStatus('Loading your hashtag…');
-  const { data, error } = await db.from('candidate_hashtags').select('hashtag').eq('owner_id', owner).maybeSingle();
+  const { data, error } = await db.from('candidate_hashtags').select('hashtag,email_notifications').eq('owner_id', owner).maybeSingle();
   if (version !== candidateHashtagVersion || currentUser?.id !== owner) return;
   if (error) { hashtagStatus('Could not load your hashtag. Please refresh and try again.'); return; }
   candidateHashtagSaved = data?.hashtag || null;
+  document.getElementById('candidate-hashtag-email-consent').checked = Boolean(data?.email_notifications);
   document.getElementById('candidate-hashtag').value = data?.hashtag || '';
   document.getElementById('candidate-hashtag-copy').disabled = !candidateHashtagSaved;
   hashtagStatus(candidateHashtagSaved ? 'Your hashtag: #' + candidateHashtagSaved : 'Choose your unique campaign hashtag.');
@@ -47,10 +49,11 @@ function setupCandidateHashtags() {
     button.disabled = true;
     hashtagStatus('Saving your hashtag…');
     try {
+      const preferences = { hashtag: tag, email_notifications: document.getElementById('candidate-hashtag-email-consent').checked };
       const query = candidateHashtagSaved
-        ? db.from('candidate_hashtags').update({ hashtag: tag }).eq('owner_id', owner)
-        : db.from('candidate_hashtags').insert({ owner_id: owner, hashtag: tag });
-      const { data, error } = await query.select('hashtag').single();
+        ? db.from('candidate_hashtags').update(preferences).eq('owner_id', owner)
+        : db.from('candidate_hashtags').insert({ owner_id: owner, ...preferences });
+      const { data, error } = await query.select('hashtag,email_notifications').single();
       if (version !== candidateHashtagVersion || currentUser?.id !== owner) return;
       if (error) {
         hashtagStatus(error.code === '23505' ? 'That hashtag is already reserved. Choose another.' :
@@ -59,7 +62,8 @@ function setupCandidateHashtags() {
       candidateHashtagSaved = data.hashtag;
       document.getElementById('candidate-hashtag').value = data.hashtag;
       document.getElementById('candidate-hashtag-copy').disabled = false;
-      hashtagStatus('Saved: #' + data.hashtag + '. You can copy it into your campaign posts.');
+      document.getElementById('candidate-hashtag-email-consent').checked = Boolean(data.email_notifications);
+      hashtagStatus('Saved: #' + data.hashtag + '. Email notification preference: ' + (data.email_notifications ? 'on.' : 'off.'));
     } catch { if (currentUser?.id === owner) hashtagStatus('Could not save. Please try again.'); }
     finally { button.disabled = false; }
   });

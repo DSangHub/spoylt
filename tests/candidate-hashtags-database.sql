@@ -14,6 +14,11 @@ insert into public.candidate_hashtags(owner_id,hashtag) values('a1111111-1111-41
 update public.candidate_hashtags set hashtag='hashtag_fixture_updated' where owner_id='a1111111-1111-4111-8111-111111111111';
 do $$ begin
  if not exists(select 1 from public.candidate_hashtags where hashtag='hashtag_fixture_updated') then raise exception 'Verified save failed'; end if;
+ if exists(select 1 from public.candidate_hashtags where email_notifications or email_consent_at is not null) then raise exception 'Consent enabled by default'; end if;
+ update public.candidate_hashtags set email_notifications=true;
+ if not exists(select 1 from public.candidate_hashtags where email_notifications and email_consent_at is not null) then raise exception 'Opt-in not recorded'; end if;
+ update public.candidate_hashtags set email_notifications=false;
+ if exists(select 1 from public.candidate_hashtags where email_notifications or email_consent_at is not null) then raise exception 'Opt-out not saved'; end if;
  begin
   insert into public.candidate_hashtags(owner_id,hashtag) values('a2222222-2222-4222-8222-222222222222','hashtag_impersonation');
   raise exception using errcode='XX000',message='Ownership bypass';
@@ -42,7 +47,7 @@ update public.verification_requests set status='revoked' where user_id='a1111111
 set local request.jwt.claims='{"sub":"a1111111-1111-4111-8111-111111111111","role":"authenticated"}';
 set local role authenticated;
 do $$ declare changed integer; begin
- update public.candidate_hashtags set hashtag='revoked_change';
+ update public.candidate_hashtags set hashtag='revoked_change',email_notifications=true;
  get diagnostics changed=row_count;
  if changed<>0 then raise exception 'Revoked user can update'; end if;
 end $$;
