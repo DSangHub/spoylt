@@ -11,3 +11,7 @@ verify_jwt = true
 
 [functions.official-auto-assistant]
 verify_jwt = true
+
+# Per-job private dispatch tokens authenticate the email worker.
+[functions.send-hashtag-email]
+verify_jwt = false
