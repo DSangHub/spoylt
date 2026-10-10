@@ -576,6 +576,19 @@
         <button id="population-more" type="button" class="hidden mt-4 text-sky-300 underline">Show more</button>
       </div>
       <p id="official-gate-note" class="mt-6 text-sm text-amber-300" role="status">Official and candidate tools become available after identity and office or filing verification.</p>
+      <div id="candidate-hashtag-tools" class="hidden glass rounded-2xl p-6 mt-8 border border-sky-500/30">
+        <h3 class="text-xl font-bold mb-2">Your campaign hashtag</h3>
+        <p class="text-sm text-slate-300 mb-4">Choose a unique hashtag after your identity and candidacy are approved. Use it in your campaign posts so voters can recognize your conversations.</p>
+        <form id="candidate-hashtag-form" class="flex flex-wrap items-end gap-3">
+          <label for="candidate-hashtag" class="flex-1 text-sm text-slate-300">Hashtag
+            <input id="candidate-hashtag" required minlength="3" maxlength="41" placeholder="#JoeSmithDistrict5" autocomplete="off" spellcheck="false" class="block mt-2 w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white" />
+          </label>
+          <button id="candidate-hashtag-save" type="submit" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-5 py-3 rounded-xl">Save hashtag</button>
+          <button id="candidate-hashtag-copy" type="button" disabled class="border border-slate-600 px-5 py-3 rounded-xl disabled:opacity-50">Copy hashtag</button>
+        </form>
+        <p class="mt-3 text-xs text-slate-400">3–40 letters, numbers or underscores. Start with a letter. Hashtags are saved in lowercase.</p>
+        <p id="candidate-hashtag-status" class="mt-3 text-sm text-sky-200" role="status" aria-live="polite"></p>
+      </div>
       <div id="my-campaign-profile" class="hidden glass rounded-2xl p-6 mt-8 border border-amber-500/20">
         <h3 class="text-xl font-bold mb-2">Candidate profile · digital flyer</h3>
         <p class="text-sm text-slate-400 mb-5">Save a flyer to your account, then complete identity and campaign ID verification above. A reviewer assigns the placement fee before payment. The flyer displays only after Stripe confirms payment.</p>
@@ -848,10 +861,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/firewall.js"></script>
   <script src="js/official-assistant.js?v=20261002"></script>
+  <script src="js/candidate-hashtags.js?v=20261010"></script>
   <script src="js/password-recovery.js?v=20261002"></script>
   <script src="js/endorsement-design.js?v=20261003-separate-prices"></script>
   <script src="js/resident-endorsement.js?v=20261003-separate-prices"></script>
   <script src="js/proposition-ads.js?v=20261003"></script>
-  <script src="js/app.js?v=20261002-password-reset"></script>
+  <script src="js/app.js?v=20261010-candidate-hashtags"></script>
 </body>
 </html>
+

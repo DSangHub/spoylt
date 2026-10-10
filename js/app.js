@@ -1212,6 +1212,7 @@ function renderVerificationStatus() {
   }
   $('#official-gate-note')?.classList.toggle('hidden', verified);
   if (typeof refreshOfficialAssistant === 'function') refreshOfficialAssistant();
+  if (typeof refreshCandidateHashtag === 'function') refreshCandidateHashtag();
 }
 
 async function loadVerificationRequest() {
@@ -1415,6 +1416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupStripeButtons();
   setupAiModerator();
   setupOfficialAssistant();
+  setupCandidateHashtags();
   renderFirewallPanel();
   $('#geo-btn')?.addEventListener('click', detectLocation);
 
@@ -1455,4 +1457,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'interactions' }, loadPropositions)
     .subscribe();
 });
+
 
