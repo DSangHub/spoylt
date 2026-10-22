@@ -98,16 +98,6 @@
       #hero-layout.has-local-flyers { grid-template-columns: clamp(240px, 20vw, 280px) minmax(0, 1fr) 3in; }
     }
 
-    .proposition-ad-viewport, .proposition-ad-card { width:min(100%,2in); height:4in; margin-inline:auto; }
-    .proposition-ad-viewport { overflow:hidden; }
-    .proposition-ad-card { box-sizing:border-box; flex:none; overflow-y:auto; background:#7f1d1d; color:#fff; border:2px solid #f87171; border-radius:12px; padding:16px; text-align:left; display:flex; flex-direction:column; gap:12px; }
-    .proposition-ad-card h3 { font-size:1.25rem; font-weight:800; overflow-wrap:anywhere; }
-    .proposition-ad-card p { font-size:.8rem; line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere; }
-    #proposition-ad-track { display:flex; flex-direction:column; }
-    #proposition-ad-track.is-moving { animation:flyers-up var(--proposition-duration,30s) linear infinite; }
-    .proposition-ad-viewport:hover #proposition-ad-track, .proposition-ad-viewport:focus-within #proposition-ad-track, .proposition-ad-viewport.is-paused #proposition-ad-track { animation-play-state:paused; }
-    @media(min-width:1024px) { .proposition-ad-viewport,.proposition-ad-card { width:min(100%,3in);height:5in; } }
-    @media(prefers-reduced-motion:reduce) { #proposition-ad-track.is-moving { animation:none; } .proposition-ad-viewport { overflow-y:auto; } #proposition-ad-track [aria-hidden="true"] { display:none; } }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased">
@@ -173,9 +163,6 @@
         <a href="#start" class="w-full sm:w-auto bg-sky-500 hover:bg-sky-400 text-white font-semibold px-8 py-3.5 rounded-xl transition shadow-xl shadow-sky-500/30 text-lg">
           Start a Spoylt →
         </a>
-        <button type="button" id="proposition-ad-open" class="flex shrink-0 flex-col items-center justify-center gap-4 rounded-xl border border-red-400 bg-red-700 px-5 text-center text-xl font-bold text-white shadow-xl hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-red-300" style="width:min(100%,2in);min-height:4in">
-          <span>Promote Your Proposition</span><span class="text-sm font-normal">Statewide California</span><span>$795.00 per week</span>
-        </button>
         <button type="button" id="resident-endorsement-open" class="flex shrink-0 flex-col items-center justify-center gap-3 rounded-xl border border-blue-400 bg-blue-950 px-5 text-center text-xl font-bold text-white shadow-xl transition hover:bg-blue-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300" style="width:min(100%,2in);min-height:4in">
           <span>Promote Your Favorite Candidate</span>
           <span class="text-sm font-normal">Create your resident endorsement</span>
@@ -191,10 +178,24 @@
       </div>
       <p class="mt-8 text-sm text-slate-400" id="hero-location" role="status">📍 Press Detect location to see nearby propositions and flyers.</p>
       </div>
-      <aside class="mx-auto mt-9 lg:mt-0 w-full max-w-[320px]" aria-label="Campaign and California proposition advertisements">
-        <section id="proposition-ad-placement" hidden aria-label="California proposition advertisements" class="mb-6">
-          <div id="proposition-ad-rotation" class="proposition-ad-viewport" tabindex="0" aria-label="Paid proposition ads moving upward; hover or focus to pause"><div id="proposition-ad-track"></div></div>
-          <button type="button" id="proposition-ad-pause" aria-pressed="false" class="mt-2 rounded-md border border-red-400 px-3 py-1 text-xs">Pause proposition flyers</button>
+      <aside class="mx-auto mt-9 lg:mt-0 w-full max-w-[320px]" aria-label="Texas and Ohio candidates and campaign advertising">
+        <section id="candidate-directory" class="mb-6 rounded-2xl border border-sky-400/40 bg-slate-900 p-4 text-left shadow-xl" aria-labelledby="candidate-directory-title">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-amber-300">November 3, 2026 · Candidate guide</p>
+          <h2 id="candidate-directory-title" class="mt-1 text-xl font-extrabold">Texas &amp; Ohio</h2>
+          <div class="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Choose state">
+            <button type="button" data-candidate-state="TX" class="rounded-lg border border-sky-400 bg-sky-500 px-3 py-2 text-sm font-bold text-white" aria-pressed="true">Texas</button>
+            <button type="button" data-candidate-state="OH" class="rounded-lg border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200" aria-pressed="false">Ohio</button>
+          </div>
+          <label for="candidate-office" class="mt-4 block text-xs font-semibold text-slate-300">Office</label>
+          <select id="candidate-office" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white">
+            <option value="governor">Governor</option><option value="senate">U.S. Senate</option><option value="house">U.S. House</option>
+          </select>
+          <label for="candidate-district" id="candidate-district-label" class="mt-3 hidden text-xs font-semibold text-slate-300">Congressional district</label>
+          <select id="candidate-district" class="mt-1 hidden w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white"></select>
+          <h3 id="candidate-race-title" class="mt-4 border-b border-slate-700 pb-2 text-sm font-bold text-sky-200"></h3>
+          <ul id="candidate-list" class="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm" aria-live="polite"></ul>
+          <p class="mt-3 text-[11px] leading-relaxed text-slate-400">Printed ballot names shown; write-in candidates are not included. A listed candidate is not necessarily a SPOYLT member. Confirm your district and ballot with your election office.</p>
+          <a id="candidate-source" href="#" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-xs font-semibold text-sky-300 underline">View election source ↗</a>
         </section>
         <a href="#advertise-campaign" class="campaign-advertise-link hero-flyer flex flex-col rounded-2xl border border-sky-400/40 bg-slate-950 shadow-2xl shadow-sky-950/40 overflow-hidden text-left transition hover:border-amber-400">
           <div class="px-4 pt-4 pb-2">
@@ -844,21 +845,6 @@
   </dialog>
 
 
-  <dialog id="proposition-ad-dialog" aria-labelledby="proposition-ad-title" class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-red-400 bg-slate-900 p-6 text-white">
-    <div class="flex justify-between gap-3"><h2 id="proposition-ad-title" class="text-xl font-bold">Promote Your Proposition</h2><button type="button" id="proposition-ad-close" aria-label="Close proposition flyer template">✕</button></div>
-    <p class="mt-3 text-red-200">California statewide placement • $795.00 per week</p>
-    <p class="mt-2 text-sm text-slate-300">2″ × 4″ on mobile · 3″ × 5″ on desktop. Approved, paid flyers appear on the right side of the landing page for visitors with a detected California location, moving bottom to top. Hover, focus, or press Pause to stop motion.</p>
-    <form id="proposition-ad-form" class="mt-5 space-y-4">
-      <label class="block">Proposition number<input name="proposition_number" required maxlength="30" placeholder="e.g. Proposition 12" class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 p-3" /></label>
-      <label class="block">Reason for a yes vote<textarea name="yes_reason" required maxlength="1200" rows="5" placeholder="Write your own reason for supporting this proposition" class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 p-3"></textarea></label>
-      <label class="block">Legal information<textarea name="legal_information" required maxlength="800" rows="4" placeholder="Legal sponsor name, paid-for-by disclosure, committee ID and any required disclosures" class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 p-3"></textarea></label>
-      <label class="block">Display option<select name="display_option" class="mt-1 block w-full rounded-lg border border-slate-600 bg-slate-800 p-3"><option value="one_week">One time — $795.00 for one week</option><option value="weekly_subscription">Weekly subscription — $795.00 per week until end of November 2, 2026</option></select></label>
-      <p class="text-sm text-slate-400">All ads stop by midnight after November 2, 2026, Pacific Time. Sponsor and content review are required before placement.</p>
-      <button type="submit" class="w-full rounded-xl bg-red-600 p-3 font-bold hover:bg-red-500">Preview proposition flyer</button>
-    </form>
-    <section id="proposition-ad-preview" hidden class="mt-6"><p class="mb-3 text-center text-xs text-slate-400">Private preview · not published</p><div id="proposition-ad-preview-card"></div><a id="proposition-ad-review" class="mt-4 block rounded-xl bg-red-600 p-3 text-center font-bold">Request review by email</a></section>
-    <p class="mt-4 text-sm text-amber-200" role="status">Review requests open your email app. This does not publish or charge for an ad. Payment and automatic placement are awaiting configuration.</p>
-  </dialog>
 
   <!-- Toast -->
   <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-600 text-white px-5 py-3 rounded-xl shadow-2xl transform translate-y-24 opacity-0 transition-all duration-300 z-50 max-w-sm"></div>
@@ -870,7 +856,7 @@
   <script src="js/password-recovery.js?v=20261002"></script>
   <script src="js/endorsement-design.js?v=20261003-separate-prices"></script>
   <script src="js/resident-endorsement.js?v=20261003-separate-prices"></script>
-  <script src="js/proposition-ads.js?v=20261003"></script>
+  <script src="js/candidate-directory.js?v=20261022"></script>
   <script src="js/app.js?v=20261010-candidate-hashtags"></script>
 </body>
 </html>
