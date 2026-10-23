@@ -15,3 +15,6 @@ verify_jwt = true
 # Per-job private dispatch tokens authenticate the email worker.
 [functions.send-hashtag-email]
 verify_jwt = false
+
+[functions.moderate-survey-comment]
+verify_jwt = true
